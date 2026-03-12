@@ -1,0 +1,42 @@
+{
+	"schemaVersion": 1,
+	"id": "dimension-level-weather",
+	"version": "${version}",
+	"name": "Dimension Level Weather",
+	"description": "Mod that enables to set weather like rain/thunder/snow in different dimensions, including vanilla dimensions like End and Nether, but also custom dimensions too.",
+	"authors": [
+		"Kirirou Otomichi"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/dimension-level-weather/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.noisetide.DimensionLevelWeather"
+		],
+		"client": [
+			"com.noisetide.DimensionLevelWeatherClient"
+		],
+		"fabric-datagen": [
+			"com.noisetide.DimensionLevelWeatherDataGenerator"
+		]
+	},
+	"mixins": [
+		"dimension-level-weather.mixins.json",
+		{
+			"config": "dimension-level-weather.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*",
+		"dimensionleveldata": "*"
+	}
+}
