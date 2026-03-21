@@ -11,10 +11,16 @@ import java.util.Map;
 
 public class WeatherManager {
 
+    private net.minecraft.server.MinecraftServer server = null;
     private WeatherSavedData savedData = null;
 
-    public void setSavedData(WeatherSavedData savedData) {
+    public void setSavedData(WeatherSavedData savedData, net.minecraft.server.MinecraftServer server) {
         this.savedData = savedData;
+        this.server = server;
+    }
+
+    public WeatherSavedData getSavedData() {
+        return savedData;
     }
 
     public enum WeatherState {
@@ -56,6 +62,11 @@ public class WeatherManager {
     public boolean isThundering(ResourceKey<Level> dimension) {
         DimensionWeather w = getOrCreate(dimension);
         return w.state == WeatherState.THUNDER && !w.clearing;
+    }
+
+    public boolean isAdvanceWeatherEnabled(ResourceKey<Level> dimension) {
+        if (savedData == null) return true;
+        return savedData.getAdvanceWeather(dimension);
     }
 
     public void setState(ResourceKey<Level> dimension, WeatherState state, ServerLevel level) {

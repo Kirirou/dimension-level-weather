@@ -1,0 +1,20 @@
+{
+  "type": "the_nav:the_nav",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "the_nav:expanse",
+      "layers": [
+        {
+          "block": "minecraft:bedrock",
+          "height": 1
+        },
+        {
+          "block": "minecraft:obsidian",
+          "height": 3
+        }
+      ],
+      "structure_overrides": []
+    }
+  }
+}

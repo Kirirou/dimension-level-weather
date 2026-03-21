@@ -10,6 +10,7 @@ import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.permissions.Permissions;
+import net.minecraft.world.level.gamerules.GameRules;
 
 public class WeatherCommand {
 
@@ -75,7 +76,31 @@ public class WeatherCommand {
                     .then(Commands.argument("dimension", DimensionArgument.dimension())
                         .executes(ctx -> queryWeather(ctx.getSource(),
                             DimensionArgument.getDimension(ctx, "dimension")))))
+                .then(Commands.literal("advance")
+                    .then(Commands.argument("dimension", DimensionArgument.dimension())
+                        .then(Commands.literal("true")
+                            .executes(ctx -> setAdvanceWeather(ctx.getSource(),
+                                DimensionArgument.getDimension(ctx, "dimension"), true)))
+                        .then(Commands.literal("false")
+                            .executes(ctx -> setAdvanceWeather(ctx.getSource(),
+                                DimensionArgument.getDimension(ctx, "dimension"), false)))))
         );
+    }
+
+    private static int setAdvanceWeather(CommandSourceStack source,
+                                          ServerLevel level, boolean value) {
+        DimensionLevelWeather.WEATHER.getSavedData()
+            .setAdvanceWeather(level.dimension(), value);
+
+        boolean globalAdvance = level.getGameRules().get(GameRules.ADVANCE_WEATHER);
+        String warning = globalAdvance ? "" :
+            " (warning: advance_weather gamerule is false, this setting will take " +
+            "effect when the gamerule is re-enabled)";
+
+        source.sendSuccess(() -> Component.literal(
+            "advance_weather for " + level.dimension().identifier()
+            + " set to " + value + warning), true);
+        return 1;
     }
 
     private static int setWeather(CommandSourceStack source, ServerLevel level,
@@ -96,29 +121,34 @@ public class WeatherCommand {
             "Weather in all dimensions set to " + state.name().toLowerCase()), true);
         return 1;
     }
-
-    private static int queryWeather(CommandSourceStack source, ServerLevel level) {
-        WeatherManager.WeatherState state =
-            DimensionLevelWeather.WEATHER.getState(level.dimension());
-        source.sendSuccess(() -> Component.literal(
-            "Weather in " + level.dimension().identifier() + " is "
-                + state.name().toLowerCase()), false);
-        return 1;
-    }
-
     private static int queryAll(CommandSourceStack source) {
         StringBuilder sb = new StringBuilder("Dimension weather:\n");
         for (ServerLevel level : source.getServer().getAllLevels()) {
             WeatherManager.WeatherState state =
                 DimensionLevelWeather.WEATHER.getState(level.dimension());
+            boolean advance = DimensionLevelWeather.WEATHER.getSavedData() == null
+                || DimensionLevelWeather.WEATHER.getSavedData()
+                    .getAdvanceWeather(level.dimension());
             sb.append("  ")
               .append(level.dimension().identifier())
-              .append(": ")
-              .append(state.name().toLowerCase())
+              .append(" | weather=").append(state.name().toLowerCase())
+              .append(" advance_weather=").append(advance)
               .append("\n");
         }
-        String message = sb.toString().trim();
-        source.sendSuccess(() -> Component.literal(message), false);
+        source.sendSuccess(() -> Component.literal(sb.toString().trim()), false);
+        return 1;
+    }
+
+    private static int queryWeather(CommandSourceStack source, ServerLevel level) {
+        WeatherManager.WeatherState state =
+            DimensionLevelWeather.WEATHER.getState(level.dimension());
+        boolean advance = DimensionLevelWeather.WEATHER.getSavedData() == null
+            || DimensionLevelWeather.WEATHER.getSavedData()
+                .getAdvanceWeather(level.dimension());
+        source.sendSuccess(() -> Component.literal(
+            level.dimension().identifier()
+            + " | weather=" + state.name().toLowerCase()
+            + " advance_weather=" + advance), false);
         return 1;
     }
 }
