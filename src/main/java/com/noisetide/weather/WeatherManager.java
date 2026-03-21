@@ -48,6 +48,11 @@ public class WeatherManager {
             || w.clearing;
     }
 
+    public boolean isThundering(ResourceKey<Level> dimension) {
+        DimensionWeather w = getOrCreate(dimension);
+        return w.state == WeatherState.THUNDER && !w.clearing;
+    }
+
     public void setState(ResourceKey<Level> dimension, WeatherState state, ServerLevel level) {
     DimensionWeather weather = getOrCreate(dimension);
 
@@ -131,13 +136,16 @@ public class WeatherManager {
         if (weather.rainLevel < 1.0F) {
             weather.rainLevel = Math.min(1.0F, weather.rainLevel + 0.02F);
             level.setRainLevel(weather.rainLevel);
+
             sendToAll(level, new ClientboundGameEventPacket(
                 ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, weather.rainLevel));
+
             if (weather.state == WeatherState.THUNDER) {
+                level.setThunderLevel(weather.rainLevel); // add this line
                 sendToAll(level, new ClientboundGameEventPacket(
                     ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, weather.rainLevel));
             }
-        }
+        }        
     }
 
     public void syncPlayerOnJoin(ServerPlayer player) {

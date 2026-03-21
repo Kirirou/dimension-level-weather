@@ -12,9 +12,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class LevelMixin {
 
     @Inject(method = "isRaining", at = @At("RETURN"), cancellable = true)
-    private void overrideWeather(CallbackInfoReturnable<Boolean> cir) {
+    private void overrideRaining(CallbackInfoReturnable<Boolean> cir) {
         Level level = (Level)(Object)this;
         if (DimensionLevelWeather.WEATHER.isRaining(level.dimension())) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    @Inject(method = "isThundering", at = @At("RETURN"), cancellable = true)
+    private void overrideThundering(CallbackInfoReturnable<Boolean> cir) {
+        Level level = (Level)(Object)this;
+        if (DimensionLevelWeather.WEATHER.isThundering(level.dimension())) {
             cir.setReturnValue(true);
         }
     }
