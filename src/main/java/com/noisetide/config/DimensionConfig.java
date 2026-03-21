@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.noisetide.DimensionLevelWeather;
-import com.noisetide.weather.WeatherManager;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -20,10 +19,6 @@ public class DimensionConfig {
     private static final String CONFIG_FILE = "config/dimension-level-weather.json";
 
     public static class DimensionEntry {
-        public boolean enabled = false;
-        public boolean auto_cycle = false;
-        public String default_state = "CLEAR";
-        public long fixed_time = -1; // -1 means no fixed time
         public double thunder_chance = 0.01;
         public int min_clear_duration = 12000;
         public int max_clear_duration = 180000;
@@ -31,14 +26,12 @@ public class DimensionConfig {
         public int max_rain_duration = 24000;
     }
 
+    private static final DimensionEntry DEFAULTS = new DimensionEntry();
+
     private final Map<String, DimensionEntry> dimensions = new HashMap<>();
 
-    public Map<String, DimensionEntry> getDimensions() {
-        return dimensions;
-    }
-
     public DimensionEntry getEntry(String dimensionId) {
-        return dimensions.get(dimensionId);
+        return dimensions.getOrDefault(dimensionId, DEFAULTS);
     }
 
     public static DimensionConfig loadOrCreate(Path gameDir) {
@@ -51,12 +44,13 @@ public class DimensionConfig {
                 if (root != null && root.has("dimensions")) {
                     JsonObject dims = root.getAsJsonObject("dimensions");
                     dims.entrySet().forEach(entry -> {
-                        DimensionEntry de = GSON.fromJson(entry.getValue(), DimensionEntry.class);
+                        DimensionEntry de = GSON.fromJson(
+                            entry.getValue(), DimensionEntry.class);
                         config.dimensions.put(entry.getKey(), de);
                     });
                 }
                 DimensionLevelWeather.LOGGER.info(
-                    "Loaded dimension-level-weather config with {} entries",
+                    "Loaded config with {} dimension entries",
                     config.dimensions.size());
             } catch (IOException e) {
                 DimensionLevelWeather.LOGGER.error("Failed to load config", e);
@@ -64,35 +58,17 @@ public class DimensionConfig {
         } else {
             config.createDefaults();
             config.save(configPath);
-            DimensionLevelWeather.LOGGER.info("Created default dimension-level-weather config");
+            DimensionLevelWeather.LOGGER.info(
+                "Created default dimension-level-weather config");
         }
 
         return config;
     }
 
     private void createDefaults() {
-        DimensionEntry overworld = new DimensionEntry();
-        overworld.enabled = true;
-        overworld.auto_cycle = true;
-        overworld.thunder_chance = 0.01;
-        overworld.min_clear_duration = 12000;
-        overworld.max_clear_duration = 180000;
-        overworld.min_rain_duration = 12000;
-        overworld.max_rain_duration = 24000;
-        dimensions.put("minecraft:overworld", overworld);
-
-        DimensionEntry end = new DimensionEntry();
-        end.enabled = true;
-        end.auto_cycle = false;
-        end.default_state = "RAIN";
-        end.fixed_time = 18000;
-        dimensions.put("minecraft:the_end", end);
-
-        DimensionEntry nether = new DimensionEntry();
-        nether.enabled = true;
-        nether.auto_cycle = false;
-        nether.default_state = "RAIN";
-        dimensions.put("minecraft:the_nether", nether);
+        dimensions.put("minecraft:overworld", new DimensionEntry());
+        dimensions.put("minecraft:the_nether", new DimensionEntry());
+        dimensions.put("minecraft:the_end", new DimensionEntry());
     }
 
     public void save(Path configPath) {

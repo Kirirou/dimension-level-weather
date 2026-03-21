@@ -101,7 +101,11 @@ public class WeatherSavedData extends SavedData {
 
     // Advance weather
     public boolean getAdvanceWeather(ResourceKey<Level> dimension) {
-        return advanceWeather.getOrDefault(dimension, true);
+        if (advanceWeather.containsKey(dimension)) {
+            return advanceWeather.get(dimension);
+        }
+        // Overworld defaults to true to match vanilla behaviour
+        return dimension == Level.OVERWORLD;
     }
 
     public void setAdvanceWeather(ResourceKey<Level> dimension, boolean value) {
@@ -111,7 +115,11 @@ public class WeatherSavedData extends SavedData {
 
     // Advance time
     public boolean getAdvanceTime(ResourceKey<Level> dimension) {
-        return advanceTime.getOrDefault(dimension, true);
+        if (advanceTime.containsKey(dimension)) {
+            return advanceTime.get(dimension);
+        }
+        // Only overworld advances time by default
+        return dimension == Level.OVERWORLD;
     }
 
     public void setAdvanceTime(ResourceKey<Level> dimension, boolean value) {

@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-public class AutoCycleManager {
+public class AdvanceWeatherManager {
 
     private static final Random RANDOM = new Random();
 
@@ -25,16 +25,21 @@ public class AutoCycleManager {
         return states.computeIfAbsent(dimension, k -> new CycleState());
     }
 
-    public void tick(ServerLevel level, DimensionConfig.DimensionEntry entry) {
-        // Respect global gamerule first
+    public void tick(ServerLevel level) {
+        // Global gamerule gate
         if (!level.getGameRules().get(GameRules.ADVANCE_WEATHER)) return;
 
-        // Respect per-dimension advance setting
-        if (!DimensionLevelWeather.WEATHER.isAdvanceWeatherEnabled(level.dimension())) return;
+        // Per-dimension advance_weather gate
+        if (DimensionLevelWeather.WEATHER.getSavedData() == null) return;
+        if (!DimensionLevelWeather.WEATHER.getSavedData()
+                .getAdvanceWeather(level.dimension())) return;
 
         ResourceKey<Level> dimension = level.dimension();
-        CycleState state = getOrCreate(dimension);
+        DimensionConfig.DimensionEntry entry =
+            DimensionLevelWeather.getConfig().getEntry(
+                dimension.identifier().toString());
 
+        CycleState state = getOrCreate(dimension);
         state.ticksUntilChange--;
         if (state.ticksUntilChange > 0) return;
 
@@ -42,9 +47,8 @@ public class AutoCycleManager {
             DimensionLevelWeather.WEATHER.getState(dimension);
 
         if (current == WeatherManager.WeatherState.CLEAR) {
-            int duration = entry.min_rain_duration +
-                RANDOM.nextInt(Math.max(1,
-                    entry.max_rain_duration - entry.min_rain_duration));
+            int duration = entry.min_rain_duration + RANDOM.nextInt(
+                Math.max(1, entry.max_rain_duration - entry.min_rain_duration));
             state.ticksUntilChange = duration;
 
             boolean thunder = RANDOM.nextDouble() < entry.thunder_chance;
@@ -54,9 +58,8 @@ public class AutoCycleManager {
 
             DimensionLevelWeather.WEATHER.setState(dimension, next, level);
         } else {
-            int duration = entry.min_clear_duration +
-                RANDOM.nextInt(Math.max(1,
-                    entry.max_clear_duration - entry.min_clear_duration));
+            int duration = entry.min_clear_duration + RANDOM.nextInt(
+                Math.max(1, entry.max_clear_duration - entry.min_clear_duration));
             state.ticksUntilChange = duration;
 
             DimensionLevelWeather.WEATHER.setState(
@@ -67,6 +70,7 @@ public class AutoCycleManager {
     public void initCycle(ResourceKey<Level> dimension,
                            DimensionConfig.DimensionEntry entry) {
         CycleState state = getOrCreate(dimension);
-        state.ticksUntilChange = RANDOM.nextInt(entry.max_clear_duration);
+        state.ticksUntilChange = RANDOM.nextInt(
+            Math.max(1, entry.max_clear_duration));
     }
 }

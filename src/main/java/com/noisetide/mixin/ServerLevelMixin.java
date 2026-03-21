@@ -20,10 +20,16 @@ public abstract class ServerLevelMixin {
         }
     }
 
-    @Inject(method = "tickTime", at = @At("HEAD"), cancellable = true)
-    private void blockTimeAdvance(CallbackInfo ci) {
+    @Inject(
+        method = "tickTime",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/level/ServerLevel;setDayTime(J)V"
+        ),
+        cancellable = true
+    )
+    private void blockDayTimeAdvance(CallbackInfo ci) {
         ServerLevel level = (ServerLevel)(Object)this;
-        if (!level.getGameRules().get(GameRules.ADVANCE_TIME)) return;
         if (DimensionLevelWeather.WEATHER.getSavedData() == null) return;
         if (!DimensionLevelWeather.WEATHER.getSavedData()
                 .getAdvanceTime(level.dimension())) {
