@@ -11,6 +11,12 @@ import java.util.Map;
 
 public class WeatherManager {
 
+    private WeatherSavedData savedData = null;
+
+    public void setSavedData(WeatherSavedData savedData) {
+        this.savedData = savedData;
+    }
+
     public enum WeatherState {
         CLEAR, RAIN, THUNDER
     }
@@ -43,9 +49,8 @@ public class WeatherManager {
 
     public boolean isRaining(ResourceKey<Level> dimension) {
         DimensionWeather w = getOrCreate(dimension);
-        return w.state == WeatherState.RAIN
-            || w.state == WeatherState.THUNDER
-            || w.clearing;
+        return (w.state == WeatherState.RAIN || w.state == WeatherState.THUNDER)
+            && !w.clearing;
     }
 
     public boolean isThundering(ResourceKey<Level> dimension) {
@@ -54,51 +59,57 @@ public class WeatherManager {
     }
 
     public void setState(ResourceKey<Level> dimension, WeatherState state, ServerLevel level) {
-    DimensionWeather weather = getOrCreate(dimension);
+        DimensionWeather weather = getOrCreate(dimension);
 
-    if (state == WeatherState.CLEAR) {
-        weather.clearing = true;
-        weather.state = WeatherState.CLEAR;
+        // Persist regardless of state
+        if (savedData != null) {
+            savedData.setState(dimension, state);
+        }
+
+        if (state == WeatherState.CLEAR) {
+            weather.clearing = true;
+            weather.state = WeatherState.CLEAR;
+            applyingWeather = true;
+            try {
+                level.setWeatherParameters(6000, 0, false, false);
+            } finally {
+                applyingWeather = false;
+            }
+            sendToAll(level, new ClientboundGameEventPacket(
+                ClientboundGameEventPacket.STOP_RAINING, 0.0F));
+            sendToAll(level, new ClientboundGameEventPacket(
+                ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, weather.rainLevel));
+            return;
+        }
+
+        weather.clearing = false;
+        weather.state = state;
+
         applyingWeather = true;
         try {
-            level.setWeatherParameters(6000, 0, false, false);
+            if (!weather.initialized) {
+                weather.initialized = true;
+                weather.rainLevel = 0.0F;
+                level.setWeatherParameters(0, 6000,
+                    true, state == WeatherState.THUNDER);
+                sendToAll(level, new ClientboundGameEventPacket(
+                    ClientboundGameEventPacket.START_RAINING, 0.0F));
+            } else {
+                level.setWeatherParameters(0, 6000,
+                    true, state == WeatherState.THUNDER);
+            }
         } finally {
             applyingWeather = false;
         }
-        // Set raining=false on client, then immediately override
-        // the 1.0F reset with current level so we can ramp down smoothly
-        sendToAll(level, new ClientboundGameEventPacket(
-            ClientboundGameEventPacket.STOP_RAINING, 0.0F));
-        sendToAll(level, new ClientboundGameEventPacket(
-            ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, weather.rainLevel));
-        return;
     }
-
-    weather.clearing = false;
-    weather.state = state;
-
-    applyingWeather = true;
-    try {
-        if (!weather.initialized) {
-            weather.initialized = true;
-            weather.rainLevel = 0.0F;
-            level.setWeatherParameters(0, 6000,
-                true, state == WeatherState.THUNDER);
-            sendToAll(level, new ClientboundGameEventPacket(
-                ClientboundGameEventPacket.START_RAINING, 0.0F));
-        } else {
-            level.setWeatherParameters(0, 6000,
-                true, state == WeatherState.THUNDER);
-        }
-    } finally {
-        applyingWeather = false;
-    }
-}
 
     public void clearFromVanilla(ServerLevel level) {
         DimensionWeather weather = getOrCreate(level.dimension());
         weather.clearing = true;
         weather.state = WeatherState.CLEAR;
+        if (savedData != null) {
+            savedData.setState(level.dimension(), WeatherState.CLEAR);
+        }
     }
 
     public void tick(ServerLevel level) {
@@ -174,5 +185,12 @@ public class WeatherManager {
         for (ServerPlayer player : level.players()) {
             player.connection.send(packet);
         }
+    }
+    public void initFromSavedState(ResourceKey<Level> dimension, WeatherState state) {
+        DimensionWeather weather = getOrCreate(dimension);
+        weather.state = state;
+        weather.rainLevel = 1.0F;
+        weather.initialized = true;
+        weather.clearing = false;
     }
 }

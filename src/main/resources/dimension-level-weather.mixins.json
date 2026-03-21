@@ -3,7 +3,8 @@
 	"package": "com.noisetide.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"LevelMixin"
+		"LevelMixin",
+		"BlockAndTintGetterMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
