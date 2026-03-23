@@ -6,7 +6,8 @@
 		"LevelMixin",
 		"ServerLevelMixin",
 		"BlockAndTintGetterMixin",
-		"MinecraftServerMixin"
+		"MinecraftServerMixin",
+		"TridentItemMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
