@@ -5,7 +5,8 @@
 	"mixins": [
 		"LevelMixin",
 		"ServerLevelMixin",
-		"BlockAndTintGetterMixin"
+		"BlockAndTintGetterMixin",
+		"MinecraftServerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
