@@ -10,6 +10,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.MutableComponent;
 
 public class TimeCommand {
 
@@ -89,6 +91,28 @@ public class TimeCommand {
         return 1;
     }
 
+    private static MutableComponent formatDimTime(ServerLevel level,
+                                                   long time,
+                                                   boolean advance,
+                                                   boolean fixed) {
+        MutableComponent comp = Component.empty()
+            .append(Component.literal("[").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(level.dimension().identifier().toString())
+                .withStyle(ChatFormatting.GOLD))
+            .append(Component.literal("]\n").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("  time: ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(String.valueOf(time))
+                .withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("  advance_time: ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(String.valueOf(advance))
+                .withStyle(advance ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
+        if (fixed) {
+            comp = comp.append(Component.literal("  [fixed by config]")
+                .withStyle(ChatFormatting.RED));
+        }
+        return comp;
+    }
+
     private static int queryTime(CommandSourceStack source, ServerLevel level) {
         long time = level.getDayTime() % 24000;
         boolean advance = DimensionLevelWeather.WEATHER.getSavedData() == null
@@ -97,17 +121,13 @@ public class TimeCommand {
         boolean fixed = DimensionLevelWeather.WEATHER.getSavedData() != null
             && DimensionLevelWeather.WEATHER.getSavedData()
                 .hasFixedTime(level.dimension());
-
-        source.sendSuccess(() -> Component.literal(
-            level.dimension().identifier()
-            + " | time=" + time
-            + " advance_time=" + advance
-            + (fixed ? " [fixed by config]" : "")), false);
+        source.sendSuccess(() -> formatDimTime(level, time, advance, fixed), false);
         return 1;
     }
 
     private static int queryAll(CommandSourceStack source) {
-        StringBuilder sb = new StringBuilder("Dimension time:\n");
+        MutableComponent output = Component.literal("Dimension time:\n")
+            .withStyle(ChatFormatting.AQUA);
         for (ServerLevel level : source.getServer().getAllLevels()) {
             long time = level.getDayTime() % 24000;
             boolean advance = DimensionLevelWeather.WEATHER.getSavedData() == null
@@ -116,15 +136,11 @@ public class TimeCommand {
             boolean fixed = DimensionLevelWeather.WEATHER.getSavedData() != null
                 && DimensionLevelWeather.WEATHER.getSavedData()
                     .hasFixedTime(level.dimension());
-
-            sb.append("  ")
-              .append(level.dimension().identifier())
-              .append(" | time=").append(time)
-              .append(" advance_time=").append(advance)
-              .append(fixed ? " [fixed]" : "")
-              .append("\n");
+            output = output.append(formatDimTime(level, time, advance, fixed))
+                           .append(Component.literal("\n"));
         }
-        source.sendSuccess(() -> Component.literal(sb.toString().trim()), false);
+        final MutableComponent finalOutput = output;
+        source.sendSuccess(() -> finalOutput, false);
         return 1;
     }
 }

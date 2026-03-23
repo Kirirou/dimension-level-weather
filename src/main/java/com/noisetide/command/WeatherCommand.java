@@ -12,9 +12,48 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.level.gamerules.GameRules;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+
 public class WeatherCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        dispatcher.register(
+            Commands.literal("pushtest")
+                .requires(source -> source.permissions()
+                    .hasPermission(Permissions.COMMANDS_GAMEMASTER))
+                .executes(ctx -> {
+                    ServerPlayer player = ctx.getSource().getPlayer();
+                    if (player == null) return 0;
+
+                    java.util.Random random = new java.util.Random();
+
+                    double angle = random.nextDouble() * Math.PI * 2;
+                    double strength = 1.5; // less horizontal
+                    double dx = Math.cos(angle) * strength;
+                    double dz = Math.sin(angle) * strength;
+                    double dy = 1.5; // more vertical
+
+                    player.push(dx, dy, dz);
+                    player.connection.send(new ClientboundSetEntityMotionPacket(player));
+
+                    // Slow falling for 2 seconds (40 ticks)
+                    player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                        net.minecraft.world.effect.MobEffects.SLOW_FALLING,
+                        60, // duration in ticks
+                        0,  // amplifier
+                        false, // ambient
+                        false, // show particles
+                        false  // show icon
+                    ));
+
+                    ctx.getSource().sendSuccess(() ->
+                        Component.literal("Launched!"), false);
+                    return 1;
+                })
+        );
 
         // Intercept vanilla /weather clear to also clear all custom dimensions
         dispatcher.register(
@@ -103,6 +142,22 @@ public class WeatherCommand {
         return 1;
     }
 
+    private static MutableComponent formatDimWeather(ServerLevel level,
+                                                   WeatherManager.WeatherState state,
+                                                   boolean advance) {
+        return Component.empty()
+            .append(Component.literal("[").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(level.dimension().identifier().toString())
+                .withStyle(ChatFormatting.GOLD))
+            .append(Component.literal("]\n").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("  weather: ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(state.name().toLowerCase())
+                .withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("  advance_weather: ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(String.valueOf(advance))
+                .withStyle(advance ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
+    }
+
     private static int setWeather(CommandSourceStack source, ServerLevel level,
                                    WeatherManager.WeatherState state) {
         DimensionLevelWeather.WEATHER.setState(level.dimension(), state, level);
@@ -121,21 +176,21 @@ public class WeatherCommand {
             "Weather in all dimensions set to " + state.name().toLowerCase()), true);
         return 1;
     }
+
     private static int queryAll(CommandSourceStack source) {
-        StringBuilder sb = new StringBuilder("Dimension weather:\n");
+        MutableComponent output = Component.literal("Dimension weather:\n")
+            .withStyle(ChatFormatting.AQUA);
         for (ServerLevel level : source.getServer().getAllLevels()) {
             WeatherManager.WeatherState state =
                 DimensionLevelWeather.WEATHER.getState(level.dimension());
             boolean advance = DimensionLevelWeather.WEATHER.getSavedData() == null
                 || DimensionLevelWeather.WEATHER.getSavedData()
                     .getAdvanceWeather(level.dimension());
-            sb.append("  ")
-              .append(level.dimension().identifier())
-              .append(" | weather=").append(state.name().toLowerCase())
-              .append(" advance_weather=").append(advance)
-              .append("\n");
+            output = output.append(formatDimWeather(level, state, advance))
+                           .append(Component.literal("\n"));
         }
-        source.sendSuccess(() -> Component.literal(sb.toString().trim()), false);
+        final MutableComponent finalOutput = output;
+        source.sendSuccess(() -> finalOutput, false);
         return 1;
     }
 
@@ -145,10 +200,7 @@ public class WeatherCommand {
         boolean advance = DimensionLevelWeather.WEATHER.getSavedData() == null
             || DimensionLevelWeather.WEATHER.getSavedData()
                 .getAdvanceWeather(level.dimension());
-        source.sendSuccess(() -> Component.literal(
-            level.dimension().identifier()
-            + " | weather=" + state.name().toLowerCase()
-            + " advance_weather=" + advance), false);
+        source.sendSuccess(() -> formatDimWeather(level, state, advance), false);
         return 1;
     }
 }
