@@ -26,13 +26,13 @@ public class AdvanceWeatherManager {
     }
 
     public void tick(ServerLevel level) {
-        // Global gamerule gate
         if (!level.getGameRules().get(GameRules.ADVANCE_WEATHER)) return;
-
-        // Per-dimension advance_weather gate
         if (DimensionLevelWeather.WEATHER.getSavedData() == null) return;
         if (!DimensionLevelWeather.WEATHER.getSavedData()
                 .getAdvanceWeather(level.dimension())) return;
+
+        // Do not cycle while a clearing ramp-down is still in progress
+        if (DimensionLevelWeather.WEATHER.isClearing(level.dimension())) return;
 
         ResourceKey<Level> dimension = level.dimension();
         DimensionConfig.DimensionEntry entry =

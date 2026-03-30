@@ -2,7 +2,9 @@
 	"required": true,
 	"package": "com.noisetide.mixin.client",
 	"compatibilityLevel": "JAVA_21",
-	"client": [],
+	"client": [
+		"ClientLevelDebugMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}
