@@ -6,6 +6,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gamerules.GameRules;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,6 +15,7 @@ import java.util.Random;
 
 public class AdvanceWeatherManager {
 
+    private static final Logger LOGGER = LogManager.getLogger("dimension-level-weather");
     private static final Random RANDOM = new Random();
 
     private static final class CycleState {
@@ -31,7 +34,6 @@ public class AdvanceWeatherManager {
         if (!DimensionLevelWeather.WEATHER.getSavedData()
                 .getAdvanceWeather(level.dimension())) return;
 
-        // Do not cycle while a clearing ramp-down is still in progress
         if (DimensionLevelWeather.WEATHER.isClearing(level.dimension())) return;
 
         ResourceKey<Level> dimension = level.dimension();
@@ -56,12 +58,17 @@ public class AdvanceWeatherManager {
                 ? WeatherManager.WeatherState.THUNDER
                 : WeatherManager.WeatherState.RAIN;
 
+            LOGGER.info("[WEATHER CHANGE] {} CLEAR -> {} (auto cycle, duration={}t)",
+                dimension.identifier(), next, duration);
             DimensionLevelWeather.WEATHER.setState(dimension, next, level);
+
         } else {
             int duration = entry.min_clear_duration + RANDOM.nextInt(
                 Math.max(1, entry.max_clear_duration - entry.min_clear_duration));
             state.ticksUntilChange = duration;
 
+            LOGGER.info("[WEATHER CHANGE] {} {} -> CLEAR (auto cycle, duration={}t)",
+                dimension.identifier(), current, duration);
             DimensionLevelWeather.WEATHER.setState(
                 dimension, WeatherManager.WeatherState.CLEAR, level);
         }
@@ -72,5 +79,7 @@ public class AdvanceWeatherManager {
         CycleState state = getOrCreate(dimension);
         state.ticksUntilChange = RANDOM.nextInt(
             Math.max(1, entry.max_clear_duration));
+        LOGGER.info("[WEATHER CYCLE INIT] {} ticksUntilChange={}",
+            dimension.identifier(), state.ticksUntilChange);
     }
 }

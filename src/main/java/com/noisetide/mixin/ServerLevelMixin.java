@@ -14,10 +14,9 @@ public abstract class ServerLevelMixin {
 
     @Inject(method = "advanceWeatherCycle", at = @At("HEAD"), cancellable = true)
     private void blockWeatherCycle(CallbackInfo ci) {
-        ServerLevel level = (ServerLevel)(Object)this;
-        if (!DimensionLevelWeather.WEATHER.isAdvanceWeatherEnabled(level.dimension())) {
-            ci.cancel();
-        }
+        // Always cancel vanilla weather cycling for all dimensions.
+        // AdvanceWeatherManager handles cycling based on the advance_weather flag.
+        ci.cancel();
     }
 
     @Inject(

@@ -78,6 +78,9 @@ public class WeatherManager {
 
     public void setState(ResourceKey<Level> dimension, WeatherState state, ServerLevel level) {
         DimensionWeather weather = getOrCreate(dimension);
+        LOGGER.info("[WEATHER SET] {} -> {} (was={} clearing={} rainLevel={})",
+            dimension.identifier(), state,
+            weather.state, weather.clearing, weather.rainLevel);
 
         if (savedData != null) {
             savedData.setState(dimension, state);
@@ -194,6 +197,12 @@ public class WeatherManager {
     public void syncPlayerOnJoin(ServerPlayer player) {
         ResourceKey<Level> dimension = player.level().dimension();
         DimensionWeather weather = getOrCreate(dimension);
+        LOGGER.info("[SYNC JOIN] player={} dim={} isRaining={} rainLevel={} clearing={}",
+            player.getScoreboardName(),
+            dimension.identifier(),
+            isRaining(dimension),
+            weather.rainLevel,
+            weather.clearing);
 
         if (!isRaining(dimension)) {
             // Reset client to zero without sending STOP_RAINING
@@ -223,6 +232,11 @@ public class WeatherManager {
 
     private void sendToAll(ServerLevel level, ClientboundGameEventPacket packet) {
         for (ServerPlayer player : level.players()) {
+            LOGGER.info("[PACKET] dim={} player={} type={} value={}",
+                level.dimension().identifier(),
+                player.getScoreboardName(),
+                packet.getEvent(),
+                packet.getParam());
             player.connection.send(packet);
         }
     }

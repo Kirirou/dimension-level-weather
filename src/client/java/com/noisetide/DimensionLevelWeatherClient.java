@@ -7,6 +7,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.biome.Biome;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+
+import com.noisetide.command.DebugWeatherCommand;
 
 public class DimensionLevelWeatherClient implements ClientModInitializer {
 
@@ -15,7 +18,11 @@ public class DimensionLevelWeatherClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientTickEvents.END_CLIENT_TICK.register(this::debugBiome);
+        
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+        DebugWeatherCommand.register(dispatcher));
     }
+
 
     private void debugBiome(Minecraft client) {
         if (client.level == null || client.player == null) return;
