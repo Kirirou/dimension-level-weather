@@ -16,13 +16,13 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.noisetide.DimensionLevelWeather"
+			"com.kyryro.dimensionlevelweather.DimensionLevelWeather"
 		],
 		"client": [
-			"com.noisetide.DimensionLevelWeatherClient"
+			"com.kyryro.dimensionlevelweather.DimensionLevelWeatherClient"
 		],
 		"fabric-datagen": [
-			"com.noisetide.DimensionLevelWeatherDataGenerator"
+			"com.kyryro.dimensionlevelweather.DimensionLevelWeatherDataGenerator"
 		]
 	},
 	"mixins": [

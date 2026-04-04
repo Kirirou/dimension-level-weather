@@ -1,4 +1,4 @@
-package com.noisetide.mixin.client;
+package com.kyryro.dimensionlevelweather.mixin.client;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,10 +11,12 @@ import org.apache.logging.log4j.Logger;
 @Mixin(ClientLevel.class)
 public abstract class ClientLevelDebugMixin {
 
+    private static final boolean DEBUG = false;
     private static final Logger LOGGER = LogManager.getLogger("dimension-level-weather");
 
     @Inject(method = "tickTime", at = @At("HEAD"))
     private void logRainLevel(CallbackInfo ci) {
+        if (!DEBUG) return;
         ClientLevel level = (ClientLevel)(Object)this;
         float rain = level.getRainLevel(1.0F);
         float thunder = level.getThunderLevel(1.0F);

@@ -1,6 +1,6 @@
-package com.noisetide.mixin;
+package com.kyryro.dimensionlevelweather.mixin;
 
-import com.noisetide.DimensionLevelWeather;
+import com.kyryro.dimensionlevelweather.DimensionLevelWeather;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.gamerules.GameRules;
 

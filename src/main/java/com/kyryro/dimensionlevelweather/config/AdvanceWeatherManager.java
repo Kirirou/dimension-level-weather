@@ -1,7 +1,7 @@
-package com.noisetide.config;
+package com.kyryro.dimensionlevelweather.config;
 
-import com.noisetide.DimensionLevelWeather;
-import com.noisetide.weather.WeatherManager;
+import com.kyryro.dimensionlevelweather.DimensionLevelWeather;
+import com.kyryro.dimensionlevelweather.weather.WeatherManager;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;

@@ -1,4 +1,4 @@
-package com.noisetide.weather;
+package com.kyryro.dimensionlevelweather.weather;
 
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -36,6 +36,8 @@ public class WeatherManager {
         boolean initialized = false;
         boolean clearing = false;
     }
+
+    private static final boolean DEBUG = false;
 
     private final Map<ResourceKey<Level>, DimensionWeather> dimensions = new HashMap<>();
     private boolean applyingWeather = false;
@@ -78,7 +80,7 @@ public class WeatherManager {
 
     public void setState(ResourceKey<Level> dimension, WeatherState state, ServerLevel level) {
         DimensionWeather weather = getOrCreate(dimension);
-        LOGGER.info("[WEATHER SET] {} -> {} (was={} clearing={} rainLevel={})",
+        if (DEBUG) LOGGER.info("[WEATHER SET] {} -> {} (was={} clearing={} rainLevel={})",
             dimension.identifier(), state,
             weather.state, weather.clearing, weather.rainLevel);
 
@@ -150,15 +152,18 @@ public class WeatherManager {
 
         if (weather.clearing) {
             if (weather.rainLevel > 0.0F) {
+                float prev = weather.rainLevel;
                 weather.rainLevel = Math.max(0.0F, weather.rainLevel - 0.02F);
                 level.setRainLevel(weather.rainLevel);
                 sendToAll(level, new ClientboundGameEventPacket(
                     ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, weather.rainLevel));
-                LOGGER.info("[SERVER] {} clearing rainLevel={}",
-                    dimension.identifier(), weather.rainLevel);
+                if (prev >= 1.0F) {
+                    LOGGER.info("{} clearing rainLevel={}", dimension.identifier(), weather.rainLevel);
+                }
             } else {
                 weather.clearing = false;
                 weather.initialized = false;
+                LOGGER.info("{} cleared", dimension.identifier());
                 sendToAll(level, new ClientboundGameEventPacket(
                     ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, 0.0F));
                 sendToAll(level, new ClientboundGameEventPacket(
@@ -180,12 +185,16 @@ public class WeatherManager {
         }
 
         if (weather.rainLevel < 1.0F) {
+            float prev = weather.rainLevel;
             weather.rainLevel = Math.min(1.0F, weather.rainLevel + 0.02F);
             level.setRainLevel(weather.rainLevel);
             sendToAll(level, new ClientboundGameEventPacket(
                 ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, weather.rainLevel));
-            LOGGER.info("[SERVER] {} ramping rainLevel={}",
-                dimension.identifier(), weather.rainLevel);
+            if (prev == 0.0F) {
+                LOGGER.info("{} ramping rainLevel={}", dimension.identifier(), weather.rainLevel);
+            } else if (weather.rainLevel >= 1.0F) {
+                LOGGER.info("{} ramping done rainLevel={}", dimension.identifier(), weather.rainLevel);
+            }
             if (weather.state == WeatherState.THUNDER) {
                 level.setThunderLevel(weather.rainLevel);
                 sendToAll(level, new ClientboundGameEventPacket(
@@ -232,11 +241,13 @@ public class WeatherManager {
 
     private void sendToAll(ServerLevel level, ClientboundGameEventPacket packet) {
         for (ServerPlayer player : level.players()) {
-            LOGGER.info("[PACKET] dim={} player={} type={} value={}",
-                level.dimension().identifier(),
-                player.getScoreboardName(),
-                packet.getEvent(),
-                packet.getParam());
+            if (DEBUG) {
+                LOGGER.info("[PACKET] dim={} player={} type={} value={}",
+                    level.dimension().identifier(),
+                    player.getScoreboardName(),
+                    packet.getEvent(),
+                    packet.getParam());
+            }
             player.connection.send(packet);
         }
     }

@@ -1,9 +1,9 @@
-package com.noisetide.config;
+package com.kyryro.dimensionlevelweather.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import com.noisetide.DimensionLevelWeather;
+import com.kyryro.dimensionlevelweather.DimensionLevelWeather;
 
 import java.io.IOException;
 import java.io.Reader;

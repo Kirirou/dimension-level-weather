@@ -1,4 +1,4 @@
-package com.noisetide.mixin;
+package com.kyryro.dimensionlevelweather.mixin;
 
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.level.ServerPlayer;

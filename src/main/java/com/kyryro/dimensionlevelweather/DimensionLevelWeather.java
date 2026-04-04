@@ -1,11 +1,11 @@
-package com.noisetide;
+package com.kyryro.dimensionlevelweather;
 
-import com.noisetide.command.TimeCommand;
-import com.noisetide.command.WeatherCommand;
-import com.noisetide.config.AdvanceWeatherManager;
-import com.noisetide.config.DimensionConfig;
-import com.noisetide.weather.WeatherManager;
-import com.noisetide.weather.WeatherSavedData;
+import com.kyryro.dimensionlevelweather.command.TimeCommand;
+import com.kyryro.dimensionlevelweather.command.WeatherCommand;
+import com.kyryro.dimensionlevelweather.config.AdvanceWeatherManager;
+import com.kyryro.dimensionlevelweather.config.DimensionConfig;
+import com.kyryro.dimensionlevelweather.weather.WeatherManager;
+import com.kyryro.dimensionlevelweather.weather.WeatherSavedData;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

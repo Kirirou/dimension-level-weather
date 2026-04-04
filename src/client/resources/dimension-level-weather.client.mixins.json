@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "com.noisetide.mixin.client",
+	"package": "com.kyryro.dimensionlevelweather.mixin.client",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
 		"ClientLevelDebugMixin"

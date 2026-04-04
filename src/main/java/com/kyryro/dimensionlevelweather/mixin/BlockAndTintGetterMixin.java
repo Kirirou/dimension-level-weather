@@ -1,6 +1,6 @@
-package com.noisetide.mixin;
+package com.kyryro.dimensionlevelweather.mixin;
 
-import com.noisetide.DimensionLevelWeather;
+import com.kyryro.dimensionlevelweather.DimensionLevelWeather;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.Level;

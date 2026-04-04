@@ -1,8 +1,8 @@
-package com.noisetide.command;
+package com.kyryro.dimensionlevelweather.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.LongArgumentType;
-import com.noisetide.DimensionLevelWeather;
+import com.kyryro.dimensionlevelweather.DimensionLevelWeather;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.DimensionArgument;

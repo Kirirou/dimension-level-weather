@@ -1,8 +1,8 @@
-package com.noisetide.command;
+package com.kyryro.dimensionlevelweather.command;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.noisetide.DimensionLevelWeather;
-import com.noisetide.weather.WeatherManager;
+import com.kyryro.dimensionlevelweather.DimensionLevelWeather;
+import com.kyryro.dimensionlevelweather.weather.WeatherManager;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -14,47 +14,10 @@ import net.minecraft.world.level.gamerules.GameRules;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 
 public class WeatherCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-            Commands.literal("pushtest")
-                .requires(source -> source.permissions()
-                    .hasPermission(Permissions.COMMANDS_GAMEMASTER))
-                .executes(ctx -> {
-                    ServerPlayer player = ctx.getSource().getPlayer();
-                    if (player == null) return 0;
-
-                    java.util.Random random = new java.util.Random();
-
-                    double angle = random.nextDouble() * Math.PI * 2;
-                    double strength = 1.5; // less horizontal
-                    double dx = Math.cos(angle) * strength;
-                    double dz = Math.sin(angle) * strength;
-                    double dy = 1.5; // more vertical
-
-                    player.push(dx, dy, dz);
-                    player.connection.send(new ClientboundSetEntityMotionPacket(player));
-
-                    // Slow falling for 2 seconds (40 ticks)
-                    player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                        net.minecraft.world.effect.MobEffects.SLOW_FALLING,
-                        60, // duration in ticks
-                        0,  // amplifier
-                        false, // ambient
-                        false, // show particles
-                        false  // show icon
-                    ));
-
-                    ctx.getSource().sendSuccess(() ->
-                        Component.literal("Launched!"), false);
-                    return 1;
-                })
-        );
-
         // Intercept vanilla /weather clear to also clear all custom dimensions
         dispatcher.register(
             Commands.literal("weather")

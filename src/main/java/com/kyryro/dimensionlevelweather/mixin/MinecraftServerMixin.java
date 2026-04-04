@@ -1,6 +1,6 @@
-package com.noisetide.mixin;
+package com.kyryro.dimensionlevelweather.mixin;
 
-import com.noisetide.DimensionLevelWeather;
+import com.kyryro.dimensionlevelweather.DimensionLevelWeather;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;

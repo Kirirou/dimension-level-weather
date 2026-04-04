@@ -1,4 +1,4 @@
-package com.noisetide.weather;
+package com.kyryro.dimensionlevelweather.weather;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.resources.Identifier;

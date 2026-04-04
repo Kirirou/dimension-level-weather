@@ -1,4 +1,4 @@
-package com.noisetide;
+package com.kyryro.dimensionlevelweather;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -9,20 +9,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 
-import com.noisetide.command.DebugWeatherCommand;
+import com.kyryro.dimensionlevelweather.command.DebugWeatherCommand;
 
 public class DimensionLevelWeatherClient implements ClientModInitializer {
 
+    private static final boolean DEBUG = false;
     private static final Logger LOGGER = LoggerFactory.getLogger("biome-debug");
 
     @Override
     public void onInitializeClient() {
-        ClientTickEvents.END_CLIENT_TICK.register(this::debugBiome);
-        
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-        DebugWeatherCommand.register(dispatcher));
+        if (DEBUG) {
+            ClientTickEvents.END_CLIENT_TICK.register(this::debugBiome);
+            ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+                DebugWeatherCommand.register(dispatcher));
+        }
     }
-
 
     private void debugBiome(Minecraft client) {
         if (client.level == null || client.player == null) return;
