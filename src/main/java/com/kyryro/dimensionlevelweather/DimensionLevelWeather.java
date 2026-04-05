@@ -18,7 +18,6 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.storage.LevelData;
 
 import java.nio.file.Path;
 
@@ -54,8 +53,6 @@ public class DimensionLevelWeather implements ModInitializer {
             WEATHER.setSavedData(savedData, server);
 
             for (ServerLevel level : server.getAllLevels()) {
-                LevelData data = level.getLevelData();
-
                 // Restore saved weather state
                 WeatherManager.WeatherState savedState =
                     savedData.getState(level.dimension());
@@ -89,12 +86,6 @@ public class DimensionLevelWeather implements ModInitializer {
         ServerTickEvents.END_WORLD_TICK.register(level -> {
             WEATHER.tick(level);
             ADVANCE_WEATHER.tick(level);
-
-            // Enforce time freeze
-            if (WEATHER.getSavedData() == null) return;
-            if (!WEATHER.getSavedData().getAdvanceTime(level.dimension())) {
-                // Time is managed by ServerLevelMixin blockTimeAdvance
-            }
         });
 
         ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register(

@@ -1,30 +1,25 @@
 package com.kyryro.dimensionlevelweather.weather;
 
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
 import net.minecraft.world.level.Level;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class WeatherManager {
 
-    private net.minecraft.server.MinecraftServer server = null;
+    private static final Logger LOGGER = LogManager.getLogger("dimension-level-weather");
+    private static final boolean DEBUG = false;
+
+    private MinecraftServer server = null;
     private WeatherSavedData savedData = null;
-
-    private static final org.apache.logging.log4j.Logger LOGGER =
-        org.apache.logging.log4j.LogManager.getLogger("dimension-level-weather");
-
-    public void setSavedData(WeatherSavedData savedData, net.minecraft.server.MinecraftServer server) {
-        this.savedData = savedData;
-        this.server = server;
-    }
-
-    public WeatherSavedData getSavedData() {
-        return savedData;
-    }
 
     public enum WeatherState {
         CLEAR, RAIN, THUNDER
@@ -37,10 +32,17 @@ public class WeatherManager {
         boolean clearing = false;
     }
 
-    private static final boolean DEBUG = false;
-
     private final Map<ResourceKey<Level>, DimensionWeather> dimensions = new HashMap<>();
     private boolean applyingWeather = false;
+
+    public void setSavedData(WeatherSavedData savedData, MinecraftServer server) {
+        this.savedData = savedData;
+        this.server = server;
+    }
+
+    public WeatherSavedData getSavedData() {
+        return savedData;
+    }
 
     public boolean isApplyingWeather() {
         return applyingWeather;
@@ -60,8 +62,7 @@ public class WeatherManager {
 
     public boolean isRaining(ResourceKey<Level> dimension) {
         DimensionWeather w = getOrCreate(dimension);
-        return (w.state == WeatherState.RAIN || w.state == WeatherState.THUNDER)
-            && !w.clearing;
+        return (w.state == WeatherState.RAIN || w.state == WeatherState.THUNDER) && !w.clearing;
     }
 
     public boolean isThundering(ResourceKey<Level> dimension) {
@@ -81,8 +82,7 @@ public class WeatherManager {
     public void setState(ResourceKey<Level> dimension, WeatherState state, ServerLevel level) {
         DimensionWeather weather = getOrCreate(dimension);
         if (DEBUG) LOGGER.info("[WEATHER SET] {} -> {} (was={} clearing={} rainLevel={})",
-            dimension.identifier(), state,
-            weather.state, weather.clearing, weather.rainLevel);
+            dimension.identifier(), state, weather.state, weather.clearing, weather.rainLevel);
 
         if (savedData != null) {
             savedData.setState(dimension, state);
@@ -100,8 +100,6 @@ public class WeatherManager {
             } finally {
                 applyingWeather = false;
             }
-            // Do not send STOP_RAINING, it resets client to 1.0F
-            // Just let the tick ramp down via RAIN_LEVEL_CHANGE
             return;
         }
 
@@ -118,14 +116,11 @@ public class WeatherManager {
                     ClientboundGameEventPacket.START_RAINING, 0.0F));
             } else {
                 level.setWeatherParameters(0, 6000, true, state == WeatherState.THUNDER);
-                // If already at full rain and switching to thunder,
-                // ramp-up won't run so send thunder level immediately
                 if (weather.rainLevel >= 1.0F && state == WeatherState.THUNDER) {
                     level.setThunderLevel(1.0F);
                     sendToAll(level, new ClientboundGameEventPacket(
                         ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, 1.0F));
                 }
-                // If switching away from thunder back to rain, clear thunder level
                 if (state == WeatherState.RAIN) {
                     level.setThunderLevel(0.0F);
                     sendToAll(level, new ClientboundGameEventPacket(
@@ -177,8 +172,7 @@ public class WeatherManager {
         applyingWeather = true;
         try {
             if (!level.getLevelData().isRaining()) {
-                level.setWeatherParameters(0, 6000,
-                    true, weather.state == WeatherState.THUNDER);
+                level.setWeatherParameters(0, 6000, true, weather.state == WeatherState.THUNDER);
             }
         } finally {
             applyingWeather = false;
@@ -207,15 +201,10 @@ public class WeatherManager {
         ResourceKey<Level> dimension = player.level().dimension();
         DimensionWeather weather = getOrCreate(dimension);
         LOGGER.info("[SYNC JOIN] player={} dim={} isRaining={} rainLevel={} clearing={}",
-            player.getScoreboardName(),
-            dimension.identifier(),
-            isRaining(dimension),
-            weather.rainLevel,
-            weather.clearing);
+            player.getScoreboardName(), dimension.identifier(),
+            isRaining(dimension), weather.rainLevel, weather.clearing);
 
         if (!isRaining(dimension)) {
-            // Reset client to zero without sending STOP_RAINING
-            // which would incorrectly set client rainLevel to 1.0F
             player.connection.send(new ClientboundGameEventPacket(
                 ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, 0.0F));
             player.connection.send(new ClientboundGameEventPacket(
@@ -243,10 +232,8 @@ public class WeatherManager {
         for (ServerPlayer player : level.players()) {
             if (DEBUG) {
                 LOGGER.info("[PACKET] dim={} player={} type={} value={}",
-                    level.dimension().identifier(),
-                    player.getScoreboardName(),
-                    packet.getEvent(),
-                    packet.getParam());
+                    level.dimension().identifier(), player.getScoreboardName(),
+                    packet.getEvent(), packet.getParam());
             }
             player.connection.send(packet);
         }

@@ -8,7 +8,8 @@
 		"BlockAndTintGetterMixin",
 		"MinecraftServerMixin",
 		"TridentItemMixin",
-		"FireBlockMixin"
+		"FireBlockMixin",
+		"EnvironmentAttributeSystemMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

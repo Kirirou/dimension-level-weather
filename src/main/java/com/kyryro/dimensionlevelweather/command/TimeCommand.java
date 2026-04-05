@@ -21,7 +21,6 @@ public class TimeCommand {
                 .requires(source -> source.permissions()
                     .hasPermission(Permissions.COMMANDS_GAMEMASTER))
 
-                // /dimtime set <dim> <time|day|noon|night|midnight>
                 .then(Commands.literal("set")
                     .then(Commands.argument("dimension", DimensionArgument.dimension())
                         .then(Commands.literal("day")
@@ -41,7 +40,6 @@ public class TimeCommand {
                                 DimensionArgument.getDimension(ctx, "dimension"),
                                 LongArgumentType.getLong(ctx, "time"))))))
 
-                // /dimtime advance <dim> <true|false>
                 .then(Commands.literal("advance")
                     .then(Commands.argument("dimension", DimensionArgument.dimension())
                         .then(Commands.literal("true")
@@ -51,7 +49,6 @@ public class TimeCommand {
                             .executes(ctx -> setAdvanceTime(ctx.getSource(),
                                 DimensionArgument.getDimension(ctx, "dimension"), false)))))
 
-                // /dimtime query [dim]
                 .then(Commands.literal("query")
                     .executes(ctx -> queryAll(ctx.getSource()))
                     .then(Commands.argument("dimension", DimensionArgument.dimension())
@@ -103,11 +100,11 @@ public class TimeCommand {
             .append(Component.literal("  time: ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(String.valueOf(time))
                 .withStyle(ChatFormatting.WHITE))
-            .append(Component.literal("  advance_time: ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("\n  advance_time: ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(String.valueOf(advance))
                 .withStyle(advance ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
         if (fixed) {
-            comp = comp.append(Component.literal("  [fixed by config]")
+            comp = comp.append(Component.literal("\n  [fixed by config]")
                 .withStyle(ChatFormatting.RED));
         }
         return comp;

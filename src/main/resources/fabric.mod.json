@@ -13,24 +13,17 @@
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/dimension-level-weather/icon.png",
-	"environment": "*",
+	"environment": "server",
 	"entrypoints": {
 		"main": [
 			"com.kyryro.dimensionlevelweather.DimensionLevelWeather"
-		],
-		"client": [
-			"com.kyryro.dimensionlevelweather.DimensionLevelWeatherClient"
 		],
 		"fabric-datagen": [
 			"com.kyryro.dimensionlevelweather.DimensionLevelWeatherDataGenerator"
 		]
 	},
 	"mixins": [
-		"dimension-level-weather.mixins.json",
-		{
-			"config": "dimension-level-weather.client.mixins.json",
-			"environment": "client"
-		}
+		"dimension-level-weather.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.18.4",
