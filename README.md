@@ -13,7 +13,12 @@ A Fabric mod that adds per-dimension weather and time control. Set rain, thunder
 ## Features
 
 - Weather state (clear/rain/thunder) per dimension
-- Rain particles and fire extinguishing work correctly in Nether and End
+- Rain particles render correctly in any dimension
+- Fire is extinguished by rain, including in the Nether and End
+- Crops are watered and cauldrons fill during rain, just like in the overworld
+- Snow falls instead of rain in cold biomes if the biome temperature supports it
+- Thunder enables Channeling enchantment and damages Endermen
+- Riptide works during rain or thunder in any dimension
 - Per-dimension control over whether weather and time advance naturally
 - Per-dimension infiniburn, fast lava, and water evaporation rules
 - All settings persist across server restarts
@@ -25,27 +30,29 @@ All commands require gamemaster permission level.
 
 ### dimweather
 
-```
-dimweather set <dimension> clear|rain|thunder
-dimweather clear|rain|thunder
-dimweather query [dimension]
-dimweather advance <dimension> true|false
-dimweather infiniburn <dimension> true|false
-dimweather fast_lava <dimension> true|false
-dimweather water_evaporates <dimension> true|false
-dimweather reset <dimension> [advance_weather|advance_time|infiniburn|fast_lava|water_evaporates]
-dimweather reset all
-```
+| Command | Description |
+|---------|-------------|
+| `dimweather set <dimension> clear\|rain\|thunder` | Set the weather state for a specific dimension. |
+| `dimweather clear\|rain\|thunder` | Set the same weather state across all loaded dimensions at once. |
+| `dimweather query [dimension]` | Show the current weather state and all rules for one or all dimensions. Values matching vanilla defaults are labelled accordingly. |
+| `dimweather advance <dimension> true\|false` | Control whether weather cycles naturally in a dimension. When false, the current weather state is locked indefinitely. |
+| `dimweather infiniburn <dimension> true\|false` | Control whether fire burns indefinitely on infiniburn blocks (e.g. netherrack) in the dimension. |
+| `dimweather fast_lava <dimension> true\|false` | Control whether lava flows at nether speed in the dimension. |
+| `dimweather water_evaporates <dimension> true\|false` | Control whether water evaporates in the dimension. When false, water can be placed and used normally even in the Nether. |
+| `dimweather reset <dimension> [field]` | Reset a specific rule or all weather rules for a dimension back to vanilla defaults. Omit the field to reset all rules at once. |
+| `dimweather reset all` | Reset all weather rules for every loaded dimension back to vanilla defaults. |
+
+The vanilla `/weather` command is overridden by this mod. `/weather rain` and `/weather thunder` affect the overworld only, matching vanilla behaviour. `/weather clear` clears weather across all dimensions.
 
 ### dimtime
 
-```
-dimtime set <dimension> day|noon|night|midnight|<ticks>
-dimtime advance <dimension> true|false
-dimtime query [dimension]
-dimtime reset <dimension>
-dimtime reset all
-```
+| Command | Description |
+|---------|-------------|
+| `dimtime set <dimension> day\|noon\|night\|midnight\|<ticks>` | Set the time of day for a specific dimension. Named values are shortcuts: day=1000, noon=6000, night=13000, midnight=18000. |
+| `dimtime advance <dimension> true\|false` | Control whether time progresses in a dimension. When false, the sun and moon are frozen at their current position. |
+| `dimtime query [dimension]` | Show the current time and advance_time rule for one or all dimensions. |
+| `dimtime reset <dimension>` | Reset all time rules for a dimension back to vanilla defaults. |
+| `dimtime reset all` | Reset all time rules for every loaded dimension back to vanilla defaults. |
 
 ## Configuration
 
@@ -80,10 +87,10 @@ Add entries for any dimension using its full ID (e.g. `minecraft:the_nether`).
 ## Screenshots
 
 ![Thunder in the Nether](screenshots/preview.png)
-*Thunder in the Nether*
+*Thunder in the Nether — Channeling enchantment works*
 
 ![Rain in the End](screenshots/preview2.png)
-*Rain in the End*
+*Rain in the End — Endermen take damage, Riptide works*
 
 ## License
 
