@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -88,7 +89,8 @@ public class WeatherSavedData extends SavedData {
     );
 
     public static final SavedDataType<WeatherSavedData> TYPE = new SavedDataType<>(
-        "dimension_weather", WeatherSavedData::new, CODEC, DataFixTypes.LEVEL);
+        Identifier.fromNamespaceAndPath("dimension-level-weather", "dimension_weather"),
+        WeatherSavedData::new, CODEC, DataFixTypes.LEVEL);
 
     public static WeatherSavedData getOrCreate(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(TYPE);
@@ -166,6 +168,10 @@ public class WeatherSavedData extends SavedData {
 
     public Optional<Boolean> getWaterEvaporates(ResourceKey<Level> dimension) {
         return Optional.ofNullable(waterEvaporates.get(dimension));
+    }
+
+    public Map<ResourceKey<Level>, Boolean> getWaterEvaporatesSnapshot() {
+        return Collections.unmodifiableMap(waterEvaporates);
     }
 
     public void setWaterEvaporates(ResourceKey<Level> dimension, boolean value) {

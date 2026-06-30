@@ -4,6 +4,7 @@ import com.kyryro.dimensionlevelweather.command.TimeCommand;
 import com.kyryro.dimensionlevelweather.command.WeatherCommand;
 import com.kyryro.dimensionlevelweather.config.AdvanceWeatherManager;
 import com.kyryro.dimensionlevelweather.config.DimensionConfig;
+import com.kyryro.dimensionlevelweather.network.WaterEvaporatesPayload;
 import com.kyryro.dimensionlevelweather.weather.WeatherManager;
 import com.kyryro.dimensionlevelweather.weather.WeatherSavedData;
 
@@ -14,7 +15,8 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
 import net.minecraft.server.level.ServerLevel;
@@ -36,6 +38,8 @@ public class DimensionLevelWeather implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("DimensionLevelWeather initializing");
+
+        PayloadTypeRegistry.clientboundPlay().register(WaterEvaporatesPayload.TYPE, WaterEvaporatesPayload.STREAM_CODEC);
 
         CommandRegistrationCallback.EVENT.register(
             (dispatcher, registryAccess, environment) -> {
@@ -60,11 +64,16 @@ public class DimensionLevelWeather implements ModInitializer {
                 if (savedState != WeatherManager.WeatherState.CLEAR) {
                     WEATHER.initFromSavedState(level.dimension(), savedState);
                     level.setRainLevel(1.0F);
-                    level.setWeatherParameters(0, 6000,
-                        true, savedState == WeatherManager.WeatherState.THUNDER);
+                    net.minecraft.world.level.saveddata.WeatherData wd = level.getWeatherData();
+                    wd.setRaining(true);
+                    wd.setRainTime(6000);
+                    wd.setClearWeatherTime(0);
                     if (savedState == WeatherManager.WeatherState.THUNDER) {
                         level.setThunderLevel(1.0F);
+                        wd.setThundering(true);
+                        wd.setThunderTime(6000);
                     }
+                    wd.setDirty();
                     LOGGER.info("Restored weather state {} for {}",
                         savedState, level.dimension().identifier());
                 }
@@ -75,23 +84,28 @@ public class DimensionLevelWeather implements ModInitializer {
                     config.getEntry(level.dimension().identifier().toString());
                 ADVANCE_WEATHER.initCycle(level.dimension(), entry);
 
-                // Restore saved advance_time
+                // Restore saved advance_time via clock manager
                 if (!savedData.getAdvanceTime(level.dimension())) {
+                    level.dimensionType().defaultClock().ifPresent(clock ->
+                        level.clockManager().setPaused(clock, true));
                     LOGGER.info("Time advance disabled for {}",
                         level.dimension().identifier());
                 }
             }
         });
 
-        ServerTickEvents.END_WORLD_TICK.register(level -> {
+        ServerTickEvents.END_LEVEL_TICK.register(level -> {
             WEATHER.tick(level);
             ADVANCE_WEATHER.tick(level);
         });
 
-        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register(
+        ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register(
             (player, origin, destination) -> WEATHER.syncPlayerOnJoin(player));
 
         ServerPlayConnectionEvents.JOIN.register(
-            (handler, sender, server) -> WEATHER.syncPlayerOnJoin(handler.player));
+            (handler, sender, server) -> {
+                WEATHER.syncPlayerOnJoin(handler.player);
+                WEATHER.sendWaterEvaporatesSync(handler.player);
+            });
     }
 }

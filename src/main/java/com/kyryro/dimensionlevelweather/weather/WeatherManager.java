@@ -1,8 +1,11 @@
 package com.kyryro.dimensionlevelweather.weather;
 
+import com.kyryro.dimensionlevelweather.network.WaterEvaporatesPayload;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.saveddata.WeatherData;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
 import net.minecraft.world.level.Level;
@@ -12,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class WeatherManager {
 
@@ -20,6 +24,7 @@ public class WeatherManager {
 
     private MinecraftServer server = null;
     private WeatherSavedData savedData = null;
+    private final Map<ResourceKey<Level>, Boolean> clientWaterEvaporates = new HashMap<>();
 
     public enum WeatherState {
         CLEAR, RAIN, THUNDER
@@ -42,6 +47,26 @@ public class WeatherManager {
 
     public WeatherSavedData getSavedData() {
         return savedData;
+    }
+
+    public void setClientWaterEvaporates(Map<ResourceKey<Level>, Boolean> map) {
+        clientWaterEvaporates.clear();
+        clientWaterEvaporates.putAll(map);
+    }
+
+    public Optional<Boolean> getWaterEvaporates(ResourceKey<Level> dimension) {
+        if (clientWaterEvaporates.containsKey(dimension)) {
+            return Optional.of(clientWaterEvaporates.get(dimension));
+        }
+        if (savedData != null) {
+            return savedData.getWaterEvaporates(dimension);
+        }
+        return Optional.empty();
+    }
+
+    public void sendWaterEvaporatesSync(ServerPlayer player) {
+        if (savedData == null) return;
+        ServerPlayNetworking.send(player, new WaterEvaporatesPayload(savedData.getWaterEvaporatesSnapshot()));
     }
 
     public boolean isApplyingWeather() {
@@ -96,7 +121,12 @@ public class WeatherManager {
             weather.state = WeatherState.CLEAR;
             applyingWeather = true;
             try {
-                level.setWeatherParameters(6000, 0, false, false);
+                WeatherData wd = level.getWeatherData();
+                wd.setClearWeatherTime(6000);
+                wd.setRainTime(0);
+                wd.setRaining(false);
+                wd.setThundering(false);
+                wd.setDirty();
             } finally {
                 applyingWeather = false;
             }
@@ -108,14 +138,19 @@ public class WeatherManager {
 
         applyingWeather = true;
         try {
+            WeatherData wd = level.getWeatherData();
+            wd.setClearWeatherTime(0);
+            wd.setRainTime(6000);
+            wd.setRaining(true);
+            wd.setThundering(state == WeatherState.THUNDER);
+            if (state == WeatherState.THUNDER) wd.setThunderTime(6000);
+            wd.setDirty();
             if (!weather.initialized) {
                 weather.initialized = true;
                 weather.rainLevel = 0.0F;
-                level.setWeatherParameters(0, 6000, true, state == WeatherState.THUNDER);
                 sendToAll(level, new ClientboundGameEventPacket(
                     ClientboundGameEventPacket.START_RAINING, 0.0F));
             } else {
-                level.setWeatherParameters(0, 6000, true, state == WeatherState.THUNDER);
                 if (weather.rainLevel >= 1.0F && state == WeatherState.THUNDER) {
                     level.setThunderLevel(1.0F);
                     sendToAll(level, new ClientboundGameEventPacket(
@@ -171,8 +206,14 @@ public class WeatherManager {
 
         applyingWeather = true;
         try {
-            if (!level.getLevelData().isRaining()) {
-                level.setWeatherParameters(0, 6000, true, weather.state == WeatherState.THUNDER);
+            WeatherData wd = level.getWeatherData();
+            if (!wd.isRaining()) {
+                wd.setRaining(true);
+                wd.setRainTime(6000);
+                wd.setClearWeatherTime(0);
+                wd.setThundering(weather.state == WeatherState.THUNDER);
+                if (weather.state == WeatherState.THUNDER) wd.setThunderTime(6000);
+                wd.setDirty();
             }
         } finally {
             applyingWeather = false;

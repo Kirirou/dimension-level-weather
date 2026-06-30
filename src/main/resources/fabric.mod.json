@@ -7,29 +7,25 @@
 	"authors": [
 		"Kirirou Otomichi"
 	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
+	"contact": {},
 	"license": "CC0-1.0",
 	"icon": "assets/dimension-level-weather/icon.png",
-	"environment": "server",
+	"environment": "*",
 	"entrypoints": {
 		"main": [
 			"com.kyryro.dimensionlevelweather.DimensionLevelWeather"
 		],
-		"fabric-datagen": [
-			"com.kyryro.dimensionlevelweather.DimensionLevelWeatherDataGenerator"
+		"client": [
+			"com.kyryro.dimensionlevelweather.DimensionLevelWeatherClient"
 		]
 	},
 	"mixins": [
 		"dimension-level-weather.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.18.4",
-		"minecraft": "~1.21.11",
-		"java": ">=21",
-		"fabric-api": "*",
-		"dimensionleveldata": "*"
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
 	}
 }

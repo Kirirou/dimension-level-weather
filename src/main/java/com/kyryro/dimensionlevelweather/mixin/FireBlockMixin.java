@@ -3,10 +3,8 @@ package com.kyryro.dimensionlevelweather.mixin;
 import com.kyryro.dimensionlevelweather.DimensionLevelWeather;
 import com.kyryro.dimensionlevelweather.weather.WeatherSavedData;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.core.HolderSet;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.TagKey;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FireBlock;
@@ -24,8 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class FireBlockMixin {
 
     @Unique
-    private static final TagKey<Block> DLW_EMPTY_TAG =
-        TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("dimension_level_weather", "empty"));
+    private static final HolderSet<Block> DLW_EMPTY_HOLDERS = HolderSet.direct();
 
     @Unique
     private ServerLevel dlw$level;
@@ -49,14 +46,14 @@ public abstract class FireBlockMixin {
     @Redirect(
         method = "tick",
         at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/level/dimension/DimensionType;infiniburn()Lnet/minecraft/tags/TagKey;")
+            target = "Lnet/minecraft/world/level/dimension/DimensionType;infiniburn()Lnet/minecraft/core/HolderSet;")
     )
-    private TagKey<Block> redirectInfiniburn(DimensionType instance) {
+    private HolderSet<Block> redirectInfiniburn(DimensionType instance) {
         if (dlw$level == null) return instance.infiniburn();
         WeatherSavedData data = DimensionLevelWeather.WEATHER.getSavedData();
         if (data == null) return instance.infiniburn();
         return data.getInfiniburn(dlw$level.dimension())
-            .map(enabled -> enabled ? instance.infiniburn() : DLW_EMPTY_TAG)
+            .map(enabled -> enabled ? instance.infiniburn() : DLW_EMPTY_HOLDERS)
             .orElse(instance.infiniburn());
     }
 }
