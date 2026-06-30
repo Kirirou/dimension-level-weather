@@ -1,4 +1,4 @@
-# Dimension Level Weather
+# <img src="src/main/resources/assets/dimension-level-weather/icon.png" width="48" alt="icon"> Dimension Level Weather
 
 A Fabric mod that adds per-dimension weather and time control. Set rain, thunder, or clear skies independently in the Nether, End, and any custom dimension — without touching other dimensions.
 
