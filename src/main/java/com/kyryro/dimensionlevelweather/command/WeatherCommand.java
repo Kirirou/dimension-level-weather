@@ -12,8 +12,10 @@ import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.attribute.EnvironmentAttributes;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gamerules.GameRules;
 
 import java.util.Optional;
@@ -158,13 +160,16 @@ public class WeatherCommand {
 
     private static int setWaterEvaporates(CommandSourceStack source, ServerLevel level, boolean value) {
         DimensionLevelWeather.WEATHER.getSavedData().setWaterEvaporates(level.dimension(), value);
+        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+            DimensionLevelWeather.WEATHER.sendWaterEvaporatesSync(player);
+        }
         source.sendSuccess(() -> Component.literal(
             "water_evaporates for " + level.dimension().identifier() + " set to " + value), true);
         return 1;
     }
 
     private static String optionalBoolDisplay(Optional<Boolean> value, boolean defaultValue) {
-        return value.map(Object::toString).orElse(defaultValue + " (default)");
+        return value.map(Object::toString).orElse(defaultValue + " (vanilla default)");
     }
 
     private static MutableComponent formatDimWeather(ServerLevel level,
@@ -173,6 +178,7 @@ public class WeatherCommand {
                                                      Optional<Boolean> infiniburn,
                                                      Optional<Boolean> fastLava,
                                                      Optional<Boolean> waterEvaporates) {
+        boolean defaultInfiniburn = level.dimensionType().infiniburn().iterator().hasNext();
         boolean defaultFastLava = level.dimensionType().attributes()
             .applyModifier(EnvironmentAttributes.FAST_LAVA, false);
         boolean defaultWaterEvaporates = level.dimensionType().attributes()
@@ -186,10 +192,10 @@ public class WeatherCommand {
             .append(Component.literal("  weather: ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(state.name().toLowerCase()).withStyle(ChatFormatting.WHITE))
             .append(Component.literal("\n  advance_weather: ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(String.valueOf(advance))
+            .append(Component.literal(advance + (advance == (level.dimension() == Level.OVERWORLD) ? " (vanilla default)" : ""))
                 .withStyle(advance ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY))
             .append(Component.literal("\n  infiniburn: ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(optionalBoolDisplay(infiniburn, true)).withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(optionalBoolDisplay(infiniburn, defaultInfiniburn)).withStyle(ChatFormatting.WHITE))
             .append(Component.literal("\n  fast_lava: ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(optionalBoolDisplay(fastLava, defaultFastLava)).withStyle(ChatFormatting.WHITE))
             .append(Component.literal("\n  water_evaporates: ").withStyle(ChatFormatting.GRAY))
