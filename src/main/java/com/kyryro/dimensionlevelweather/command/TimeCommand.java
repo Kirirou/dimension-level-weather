@@ -25,8 +25,7 @@ public class TimeCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             Commands.literal("dimtime")
-                .requires(source -> source.permissions()
-                    .hasPermission(Permissions.COMMANDS_GAMEMASTER))
+                .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
 
                 .then(Commands.literal("set")
                     .then(Commands.argument("dimension", DimensionArgument.dimension())

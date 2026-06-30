@@ -94,4 +94,4 @@ Add entries for any dimension using its full ID (e.g. `minecraft:the_nether`).
 
 ## License
 
-CC0-1.0 — public domain.
+MIT
