@@ -21,7 +21,6 @@ public class WeatherSavedData extends SavedData {
     private final Map<ResourceKey<Level>, WeatherManager.WeatherState> states;
     private final Map<ResourceKey<Level>, Boolean> advanceWeather;
     private final Map<ResourceKey<Level>, Boolean> advanceTime;
-    private final Map<ResourceKey<Level>, Long> fixedTime;
     private final Map<ResourceKey<Level>, Boolean> infiniburn;
     private final Map<ResourceKey<Level>, Boolean> fastLava;
     private final Map<ResourceKey<Level>, Boolean> waterEvaporates;
@@ -30,7 +29,6 @@ public class WeatherSavedData extends SavedData {
         this.states = new HashMap<>();
         this.advanceWeather = new HashMap<>();
         this.advanceTime = new HashMap<>();
-        this.fixedTime = new HashMap<>();
         this.infiniburn = new HashMap<>();
         this.fastLava = new HashMap<>();
         this.waterEvaporates = new HashMap<>();
@@ -40,14 +38,12 @@ public class WeatherSavedData extends SavedData {
             Map<ResourceKey<Level>, WeatherManager.WeatherState> states,
             Map<ResourceKey<Level>, Boolean> advanceWeather,
             Map<ResourceKey<Level>, Boolean> advanceTime,
-            Map<ResourceKey<Level>, Long> fixedTime,
             Map<ResourceKey<Level>, Boolean> infiniburn,
             Map<ResourceKey<Level>, Boolean> fastLava,
             Map<ResourceKey<Level>, Boolean> waterEvaporates) {
         this.states = new HashMap<>(states);
         this.advanceWeather = new HashMap<>(advanceWeather);
         this.advanceTime = new HashMap<>(advanceTime);
-        this.fixedTime = new HashMap<>(fixedTime);
         this.infiniburn = new HashMap<>(infiniburn);
         this.fastLava = new HashMap<>(fastLava);
         this.waterEvaporates = new HashMap<>(waterEvaporates);
@@ -69,19 +65,11 @@ public class WeatherSavedData extends SavedData {
                 ResourceKey::identifier),
             Codec.BOOL);
 
-    private static final Codec<Map<ResourceKey<Level>, Long>> LONG_MAP_CODEC =
-        Codec.unboundedMap(
-            Identifier.CODEC.xmap(
-                id -> ResourceKey.create(Registries.DIMENSION, id),
-                ResourceKey::identifier),
-            Codec.LONG);
-
     public static final Codec<WeatherSavedData> CODEC = RecordCodecBuilder.create(instance ->
         instance.group(
             STATES_CODEC.optionalFieldOf("states", new HashMap<>()).forGetter(d -> d.states),
             BOOL_MAP_CODEC.optionalFieldOf("advance_weather", new HashMap<>()).forGetter(d -> d.advanceWeather),
             BOOL_MAP_CODEC.optionalFieldOf("advance_time", new HashMap<>()).forGetter(d -> d.advanceTime),
-            LONG_MAP_CODEC.optionalFieldOf("fixed_time", new HashMap<>()).forGetter(d -> d.fixedTime),
             BOOL_MAP_CODEC.optionalFieldOf("infiniburn", new HashMap<>()).forGetter(d -> d.infiniburn),
             BOOL_MAP_CODEC.optionalFieldOf("fast_lava", new HashMap<>()).forGetter(d -> d.fastLava),
             BOOL_MAP_CODEC.optionalFieldOf("water_evaporates", new HashMap<>()).forGetter(d -> d.waterEvaporates)
@@ -137,23 +125,6 @@ public class WeatherSavedData extends SavedData {
     public void setAdvanceTime(ResourceKey<Level> dimension, boolean value) {
         advanceTime.put(dimension, value);
         setDirty();
-    }
-
-    public long getFixedTime(ResourceKey<Level> dimension) {
-        return fixedTime.getOrDefault(dimension, -1L);
-    }
-
-    public void setFixedTime(ResourceKey<Level> dimension, long time) {
-        if (time < 0) {
-            fixedTime.remove(dimension);
-        } else {
-            fixedTime.put(dimension, time);
-        }
-        setDirty();
-    }
-
-    public boolean hasFixedTime(ResourceKey<Level> dimension) {
-        return fixedTime.containsKey(dimension);
     }
 
     public Optional<Boolean> getInfiniburn(ResourceKey<Level> dimension) {
