@@ -113,6 +113,27 @@ public class WeatherCommand {
                         .then(Commands.literal("false"
                             ).executes(ctx -> setWaterEvaporates(ctx.getSource(),
                                 DimensionArgument.getDimension(ctx, "dimension"), false)))))
+                .then(Commands.literal("reset")
+                    .then(Commands.literal("all")
+                        .executes(ctx -> resetAllDimensions(ctx.getSource())))
+                    .then(Commands.argument("dimension", DimensionArgument.dimension())
+                        .executes(ctx -> resetAll(ctx.getSource(),
+                            DimensionArgument.getDimension(ctx, "dimension")))
+                        .then(Commands.literal("advance_weather")
+                            .executes(ctx -> resetAdvanceWeather(ctx.getSource(),
+                                DimensionArgument.getDimension(ctx, "dimension"))))
+                        .then(Commands.literal("advance_time")
+                            .executes(ctx -> resetAdvanceTime(ctx.getSource(),
+                                DimensionArgument.getDimension(ctx, "dimension"))))
+                        .then(Commands.literal("infiniburn")
+                            .executes(ctx -> resetInfiniburn(ctx.getSource(),
+                                DimensionArgument.getDimension(ctx, "dimension"))))
+                        .then(Commands.literal("fast_lava")
+                            .executes(ctx -> resetFastLava(ctx.getSource(),
+                                DimensionArgument.getDimension(ctx, "dimension"))))
+                        .then(Commands.literal("water_evaporates")
+                            .executes(ctx -> resetWaterEvaporates(ctx.getSource(),
+                                DimensionArgument.getDimension(ctx, "dimension"))))))
         );
     }
 
@@ -214,6 +235,91 @@ public class WeatherCommand {
             .append(dimComponent(level))
             .append(Component.literal(" set to ").withStyle(ChatFormatting.GRAY))
             .append(optionalBoolDisplay(Optional.of(value), defaultValue)), true);
+        return 1;
+    }
+
+    private static int resetAllDimensions(CommandSourceStack source) {
+        List<ServerLevel> levels = new ArrayList<>();
+        source.getServer().getAllLevels().forEach(levels::add);
+        var data = DimensionLevelWeather.WEATHER.getSavedData();
+        for (ServerLevel level : levels) {
+            data.removeAdvanceWeather(level.dimension());
+            data.removeAdvanceTime(level.dimension());
+            data.removeInfiniburn(level.dimension());
+            data.removeFastLava(level.dimension());
+            data.removeWaterEvaporates(level.dimension());
+            boolean defAdvanceTime = level.dimension() == Level.OVERWORLD;
+            level.dimensionType().defaultClock().ifPresent(clock ->
+                level.clockManager().setPaused(clock, !defAdvanceTime));
+        }
+        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+            DimensionLevelWeather.WEATHER.sendWaterEvaporatesSync(player);
+        }
+        source.sendSuccess(() -> Component.literal("All weather rules reset to vanilla defaults")
+            .withStyle(ChatFormatting.GRAY), true);
+        return 1;
+    }
+
+    private static MutableComponent resetMsg(ServerLevel level, String field) {
+        return Component.empty()
+            .append(Component.literal(field + " for ").withStyle(ChatFormatting.GRAY))
+            .append(dimComponent(level))
+            .append(Component.literal(" reset to vanilla defaults").withStyle(ChatFormatting.GRAY));
+    }
+
+    private static int resetAdvanceWeather(CommandSourceStack source, ServerLevel level) {
+        DimensionLevelWeather.WEATHER.getSavedData().removeAdvanceWeather(level.dimension());
+        source.sendSuccess(() -> resetMsg(level, "advance_weather"), true);
+        return 1;
+    }
+
+    static int resetAdvanceTime(CommandSourceStack source, ServerLevel level) {
+        DimensionLevelWeather.WEATHER.getSavedData().removeAdvanceTime(level.dimension());
+        boolean def = level.dimension() == Level.OVERWORLD;
+        level.dimensionType().defaultClock().ifPresent(clock ->
+            level.clockManager().setPaused(clock, !def));
+        source.sendSuccess(() -> resetMsg(level, "advance_time"), true);
+        return 1;
+    }
+
+    private static int resetInfiniburn(CommandSourceStack source, ServerLevel level) {
+        DimensionLevelWeather.WEATHER.getSavedData().removeInfiniburn(level.dimension());
+        source.sendSuccess(() -> resetMsg(level, "infiniburn"), true);
+        return 1;
+    }
+
+    private static int resetFastLava(CommandSourceStack source, ServerLevel level) {
+        DimensionLevelWeather.WEATHER.getSavedData().removeFastLava(level.dimension());
+        source.sendSuccess(() -> resetMsg(level, "fast_lava"), true);
+        return 1;
+    }
+
+    private static int resetWaterEvaporates(CommandSourceStack source, ServerLevel level) {
+        DimensionLevelWeather.WEATHER.getSavedData().removeWaterEvaporates(level.dimension());
+        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+            DimensionLevelWeather.WEATHER.sendWaterEvaporatesSync(player);
+        }
+        source.sendSuccess(() -> resetMsg(level, "water_evaporates"), true);
+        return 1;
+    }
+
+    private static int resetAll(CommandSourceStack source, ServerLevel level) {
+        var data = DimensionLevelWeather.WEATHER.getSavedData();
+        data.removeAdvanceWeather(level.dimension());
+        data.removeAdvanceTime(level.dimension());
+        data.removeInfiniburn(level.dimension());
+        data.removeFastLava(level.dimension());
+        data.removeWaterEvaporates(level.dimension());
+        boolean defAdvanceTime = level.dimension() == Level.OVERWORLD;
+        level.dimensionType().defaultClock().ifPresent(clock ->
+            level.clockManager().setPaused(clock, !defAdvanceTime));
+        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+            DimensionLevelWeather.WEATHER.sendWaterEvaporatesSync(player);
+        }
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("All weather rules for ").withStyle(ChatFormatting.GRAY))
+            .append(dimComponent(level))
+            .append(Component.literal(" reset to vanilla defaults").withStyle(ChatFormatting.GRAY)), true);
         return 1;
     }
 

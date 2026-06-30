@@ -61,6 +61,12 @@ public class TimeCommand {
                     .then(Commands.argument("dimension", DimensionArgument.dimension())
                         .executes(ctx -> queryTime(ctx.getSource(),
                             DimensionArgument.getDimension(ctx, "dimension")))))
+                .then(Commands.literal("reset")
+                    .then(Commands.literal("all")
+                        .executes(ctx -> resetAllAdvanceTime(ctx.getSource())))
+                    .then(Commands.argument("dimension", DimensionArgument.dimension())
+                        .executes(ctx -> resetAllAdvanceTimeDim(ctx.getSource(),
+                            DimensionArgument.getDimension(ctx, "dimension")))))
         );
     }
 
@@ -144,6 +150,33 @@ public class TimeCommand {
         Optional<Boolean> advance = data == null ? Optional.empty() : data.getAdvanceTimeOptional(level.dimension());
         boolean fixed = data != null && data.hasFixedTime(level.dimension());
         source.sendSuccess(() -> formatDimTime(level, time, advance, fixed), false);
+        return 1;
+    }
+
+    private static int resetAllAdvanceTimeDim(CommandSourceStack source, ServerLevel level) {
+        DimensionLevelWeather.WEATHER.getSavedData().removeAdvanceTime(level.dimension());
+        boolean def = level.dimension() == Level.OVERWORLD;
+        level.dimensionType().defaultClock().ifPresent(clock ->
+            level.clockManager().setPaused(clock, !def));
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("All time rules for ").withStyle(ChatFormatting.GRAY))
+            .append(WeatherCommand.dimComponent(level))
+            .append(Component.literal(" reset to vanilla defaults").withStyle(ChatFormatting.GRAY)), true);
+        return 1;
+    }
+
+    private static int resetAllAdvanceTime(CommandSourceStack source) {
+        List<ServerLevel> levels = new ArrayList<>();
+        source.getServer().getAllLevels().forEach(levels::add);
+        var data = DimensionLevelWeather.WEATHER.getSavedData();
+        for (ServerLevel level : levels) {
+            data.removeAdvanceTime(level.dimension());
+            boolean def = level.dimension() == Level.OVERWORLD;
+            level.dimensionType().defaultClock().ifPresent(clock ->
+                level.clockManager().setPaused(clock, !def));
+        }
+        source.sendSuccess(() -> Component.literal("All time rules reset to vanilla defaults")
+            .withStyle(ChatFormatting.GRAY), true);
         return 1;
     }
 

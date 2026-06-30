@@ -165,12 +165,22 @@ public class WeatherSavedData extends SavedData {
         setDirty();
     }
 
+    public void removeInfiniburn(ResourceKey<Level> dimension) {
+        infiniburn.remove(dimension);
+        setDirty();
+    }
+
     public Optional<Boolean> getFastLava(ResourceKey<Level> dimension) {
         return Optional.ofNullable(fastLava.get(dimension));
     }
 
     public void setFastLava(ResourceKey<Level> dimension, boolean value) {
         fastLava.put(dimension, value);
+        setDirty();
+    }
+
+    public void removeFastLava(ResourceKey<Level> dimension) {
+        fastLava.remove(dimension);
         setDirty();
     }
 
@@ -184,6 +194,21 @@ public class WeatherSavedData extends SavedData {
 
     public void setWaterEvaporates(ResourceKey<Level> dimension, boolean value) {
         waterEvaporates.put(dimension, value);
+        setDirty();
+    }
+
+    public void removeWaterEvaporates(ResourceKey<Level> dimension) {
+        waterEvaporates.remove(dimension);
+        setDirty();
+    }
+
+    public void removeAdvanceWeather(ResourceKey<Level> dimension) {
+        advanceWeather.remove(dimension);
+        setDirty();
+    }
+
+    public void removeAdvanceTime(ResourceKey<Level> dimension) {
+        advanceTime.remove(dimension);
         setDirty();
     }
 }
