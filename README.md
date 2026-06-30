@@ -2,6 +2,7 @@
 
 A Fabric mod that adds per-dimension weather and time control. Set rain, thunder, or clear skies independently in the Nether, End, and any custom dimension — without touching other dimensions.
 
+
 ## Requirements
 
 - Minecraft 26.2
@@ -75,6 +76,14 @@ Add entries for any dimension using its full ID (e.g. `minecraft:the_nether`).
 | infiniburn       | true      | true   | true  |
 | fast_lava        | false     | true   | false |
 | water_evaporates | false     | true   | false |
+
+## Screenshots
+
+![Thunder in the Nether](screenshots/preview.png)
+*Thunder in the Nether*
+
+![Rain in the End](screenshots/preview2.png)
+*Rain in the End*
 
 ## License
 
