@@ -15,6 +15,11 @@ import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.MutableComponent;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
 public class TimeCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -78,14 +83,18 @@ public class TimeCommand {
         if (DimensionLevelWeather.WEATHER.getSavedData() != null
                 && DimensionLevelWeather.WEATHER.getSavedData()
                     .hasFixedTime(level.dimension())) {
-            source.sendFailure(Component.literal(
-                level.dimension().identifier()
-                + " has a fixed time set in config. Remove fixed_time from config first."));
+            source.sendFailure(Component.empty()
+                .append(WeatherCommand.dimComponent(level))
+                .append(Component.literal(" has a fixed time set in config. Remove fixed_time from config first.")
+                    .withStyle(ChatFormatting.RED)));
             return 0;
         }
         setLevelDayTime(level, time);
-        source.sendSuccess(() -> Component.literal(
-            "Set time in " + level.dimension().identifier() + " to " + time), true);
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("Set time in ").withStyle(ChatFormatting.GRAY))
+            .append(WeatherCommand.dimComponent(level))
+            .append(Component.literal(" to ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(String.valueOf(time)).withStyle(ChatFormatting.WHITE)), true);
         return 1;
     }
 
@@ -95,35 +104,33 @@ public class TimeCommand {
             .setAdvanceTime(level.dimension(), value);
         level.dimensionType().defaultClock().ifPresent(clock ->
             level.clockManager().setPaused(clock, !value));
-
+        boolean defaultValue = level.dimension() == Level.OVERWORLD;
         boolean globalAdvance = level.getGameRules().get(GameRules.ADVANCE_TIME);
-        String warning = globalAdvance ? "" :
-            " (warning: advance_time gamerule is false, this setting will take " +
-            "effect when the gamerule is re-enabled)";
-
-        source.sendSuccess(() -> Component.literal(
-            "advance_time for " + level.dimension().identifier()
-            + " set to " + value + warning), true);
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("advance_time for ").withStyle(ChatFormatting.GRAY))
+            .append(WeatherCommand.dimComponent(level))
+            .append(Component.literal(" set to ").withStyle(ChatFormatting.GRAY))
+            .append(WeatherCommand.optionalBoolDisplay(Optional.of(value), defaultValue))
+            .append(globalAdvance ? Component.empty()
+                : Component.literal(" (warning: advance_time gamerule is false, this setting will take effect when the gamerule is re-enabled)")
+                    .withStyle(ChatFormatting.YELLOW)), true);
         return 1;
     }
 
     private static MutableComponent formatDimTime(ServerLevel level,
                                                    long time,
-                                                   boolean advance,
+                                                   Optional<Boolean> advance,
                                                    boolean fixed) {
-        boolean vanillaDefault = level.dimension() == Level.OVERWORLD;
-        String advanceDisplay = advance + (advance == vanillaDefault ? " (vanilla default)" : "");
+        boolean defaultAdvance = level.dimension() == Level.OVERWORLD;
         MutableComponent comp = Component.empty()
             .append(Component.literal("[").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(level.dimension().identifier().toString())
-                .withStyle(ChatFormatting.GOLD))
+            .append(WeatherCommand.dimComponent(level))
             .append(Component.literal("]\n").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("  time: ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(String.valueOf(time))
                 .withStyle(ChatFormatting.WHITE))
             .append(Component.literal("\n  advance_time: ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(advanceDisplay)
-                .withStyle(advance ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
+            .append(WeatherCommand.optionalBoolDisplay(advance, defaultAdvance));
         if (fixed) {
             comp = comp.append(Component.literal("\n  [fixed by config]")
                 .withStyle(ChatFormatting.RED));
@@ -134,7 +141,7 @@ public class TimeCommand {
     private static int queryTime(CommandSourceStack source, ServerLevel level) {
         var data = DimensionLevelWeather.WEATHER.getSavedData();
         long time = getLevelDayTime(level);
-        boolean advance = data == null || data.getAdvanceTime(level.dimension());
+        Optional<Boolean> advance = data == null ? Optional.empty() : data.getAdvanceTimeOptional(level.dimension());
         boolean fixed = data != null && data.hasFixedTime(level.dimension());
         source.sendSuccess(() -> formatDimTime(level, time, advance, fixed), false);
         return 1;
@@ -144,9 +151,12 @@ public class TimeCommand {
         MutableComponent output = Component.literal("Dimension time:\n")
             .withStyle(ChatFormatting.AQUA);
         var data = DimensionLevelWeather.WEATHER.getSavedData();
-        for (ServerLevel level : source.getServer().getAllLevels()) {
+        List<ServerLevel> levels = new ArrayList<>();
+        source.getServer().getAllLevels().forEach(levels::add);
+        levels.sort(Comparator.comparingInt(WeatherCommand::dimOrder));
+        for (ServerLevel level : levels) {
             long time = getLevelDayTime(level);
-            boolean advance = data == null || data.getAdvanceTime(level.dimension());
+            Optional<Boolean> advance = data == null ? Optional.empty() : data.getAdvanceTimeOptional(level.dimension());
             boolean fixed = data != null && data.hasFixedTime(level.dimension());
             output = output.append(formatDimTime(level, time, advance, fixed))
                            .append(Component.literal("\n"));

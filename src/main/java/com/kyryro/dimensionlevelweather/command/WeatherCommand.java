@@ -18,6 +18,9 @@ import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gamerules.GameRules;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 
 public class WeatherCommand {
@@ -113,12 +116,41 @@ public class WeatherCommand {
         );
     }
 
+    private static ChatFormatting weatherColor(WeatherManager.WeatherState state) {
+        return switch (state) {
+            case CLEAR -> ChatFormatting.WHITE;
+            case RAIN -> ChatFormatting.AQUA;
+            case THUNDER -> ChatFormatting.YELLOW;
+        };
+    }
+
+    static int dimOrder(ServerLevel level) {
+        if (level.dimension() == Level.OVERWORLD) return 0;
+        if (level.dimension() == Level.NETHER)    return 1;
+        if (level.dimension() == Level.END)        return 2;
+        return 3;
+    }
+
+    static ChatFormatting dimColor(ServerLevel level) {
+        if (level.dimension() == Level.OVERWORLD) return ChatFormatting.DARK_GREEN;
+        if (level.dimension() == Level.NETHER)    return ChatFormatting.DARK_RED;
+        if (level.dimension() == Level.END)        return ChatFormatting.LIGHT_PURPLE;
+        return ChatFormatting.GOLD;
+    }
+
+    static MutableComponent dimComponent(ServerLevel level) {
+        return Component.literal(level.dimension().identifier().toString())
+            .withStyle(dimColor(level));
+    }
+
     private static int setWeather(CommandSourceStack source, ServerLevel level,
                                    WeatherManager.WeatherState state) {
         DimensionLevelWeather.WEATHER.setState(level.dimension(), state, level);
-        source.sendSuccess(() -> Component.literal(
-            "Weather in " + level.dimension().identifier() + " set to "
-                + state.name().toLowerCase()), true);
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("Weather in ").withStyle(ChatFormatting.GRAY))
+            .append(dimComponent(level))
+            .append(Component.literal(" set to ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(state.name().toLowerCase()).withStyle(weatherColor(state))), true);
         return 1;
     }
 
@@ -126,35 +158,47 @@ public class WeatherCommand {
         for (ServerLevel level : source.getServer().getAllLevels()) {
             DimensionLevelWeather.WEATHER.setState(level.dimension(), state, level);
         }
-        source.sendSuccess(() -> Component.literal(
-            "Weather in all dimensions set to " + state.name().toLowerCase()), true);
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("Weather in all dimensions set to ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(state.name().toLowerCase()).withStyle(weatherColor(state))), true);
         return 1;
     }
 
     private static int setAdvanceWeather(CommandSourceStack source, ServerLevel level, boolean value) {
         DimensionLevelWeather.WEATHER.getSavedData().setAdvanceWeather(level.dimension(), value);
-
+        boolean defaultValue = level.dimension() == Level.OVERWORLD;
         boolean globalAdvance = level.getGameRules().get(GameRules.ADVANCE_WEATHER);
-        String warning = globalAdvance ? "" :
-            " (warning: advance_weather gamerule is false)";
-
-        source.sendSuccess(() -> Component.literal(
-            "advance_weather for " + level.dimension().identifier()
-            + " set to " + value + warning), true);
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("advance_weather for ").withStyle(ChatFormatting.GRAY))
+            .append(dimComponent(level))
+            .append(Component.literal(" set to ").withStyle(ChatFormatting.GRAY))
+            .append(optionalBoolDisplay(Optional.of(value), defaultValue))
+            .append(globalAdvance ? Component.empty()
+                : Component.literal(" (warning: advance_weather gamerule is false)")
+                    .withStyle(ChatFormatting.YELLOW)), true);
         return 1;
     }
 
     private static int setInfiniburn(CommandSourceStack source, ServerLevel level, boolean value) {
         DimensionLevelWeather.WEATHER.getSavedData().setInfiniburn(level.dimension(), value);
-        source.sendSuccess(() -> Component.literal(
-            "infiniburn for " + level.dimension().identifier() + " set to " + value), true);
+        boolean defaultValue = level.dimensionType().infiniburn().iterator().hasNext();
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("infiniburn for ").withStyle(ChatFormatting.GRAY))
+            .append(dimComponent(level))
+            .append(Component.literal(" set to ").withStyle(ChatFormatting.GRAY))
+            .append(optionalBoolDisplay(Optional.of(value), defaultValue)), true);
         return 1;
     }
 
     private static int setFastLava(CommandSourceStack source, ServerLevel level, boolean value) {
         DimensionLevelWeather.WEATHER.getSavedData().setFastLava(level.dimension(), value);
-        source.sendSuccess(() -> Component.literal(
-            "fast_lava for " + level.dimension().identifier() + " set to " + value), true);
+        boolean defaultValue = level.dimensionType().attributes()
+            .applyModifier(EnvironmentAttributes.FAST_LAVA, false);
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("fast_lava for ").withStyle(ChatFormatting.GRAY))
+            .append(dimComponent(level))
+            .append(Component.literal(" set to ").withStyle(ChatFormatting.GRAY))
+            .append(optionalBoolDisplay(Optional.of(value), defaultValue)), true);
         return 1;
     }
 
@@ -163,21 +207,37 @@ public class WeatherCommand {
         for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
             DimensionLevelWeather.WEATHER.sendWaterEvaporatesSync(player);
         }
-        source.sendSuccess(() -> Component.literal(
-            "water_evaporates for " + level.dimension().identifier() + " set to " + value), true);
+        boolean defaultValue = level.dimensionType().attributes()
+            .applyModifier(EnvironmentAttributes.WATER_EVAPORATES, false);
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("water_evaporates for ").withStyle(ChatFormatting.GRAY))
+            .append(dimComponent(level))
+            .append(Component.literal(" set to ").withStyle(ChatFormatting.GRAY))
+            .append(optionalBoolDisplay(Optional.of(value), defaultValue)), true);
         return 1;
     }
 
-    private static String optionalBoolDisplay(Optional<Boolean> value, boolean defaultValue) {
-        return value.map(Object::toString).orElse(defaultValue + " (vanilla default)");
+    static MutableComponent vanillaDefault() {
+        return Component.literal(" [vanilla default]").withStyle(ChatFormatting.GRAY);
+    }
+
+    static MutableComponent optionalBoolDisplay(Optional<Boolean> value, boolean defaultValue) {
+        boolean effective = value.orElse(defaultValue);
+        ChatFormatting style = effective == defaultValue
+            ? (effective ? ChatFormatting.WHITE : ChatFormatting.DARK_GRAY)
+            : (effective ? ChatFormatting.GREEN : ChatFormatting.RED);
+        MutableComponent result = Component.literal(String.valueOf(effective)).withStyle(style);
+        if (effective == defaultValue) result = result.append(vanillaDefault());
+        return result;
     }
 
     private static MutableComponent formatDimWeather(ServerLevel level,
                                                      WeatherManager.WeatherState state,
-                                                     boolean advance,
+                                                     Optional<Boolean> advance,
                                                      Optional<Boolean> infiniburn,
                                                      Optional<Boolean> fastLava,
                                                      Optional<Boolean> waterEvaporates) {
+        boolean defaultAdvance = level.dimension() == Level.OVERWORLD;
         boolean defaultInfiniburn = level.dimensionType().infiniburn().iterator().hasNext();
         boolean defaultFastLava = level.dimensionType().attributes()
             .applyModifier(EnvironmentAttributes.FAST_LAVA, false);
@@ -186,25 +246,26 @@ public class WeatherCommand {
 
         return Component.empty()
             .append(Component.literal("[").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(level.dimension().identifier().toString())
-                .withStyle(ChatFormatting.GOLD))
+            .append(dimComponent(level))
             .append(Component.literal("]\n").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("  weather: ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(state.name().toLowerCase()).withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(state.name().toLowerCase()).withStyle(weatherColor(state)))
             .append(Component.literal("\n  advance_weather: ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(advance + (advance == (level.dimension() == Level.OVERWORLD) ? " (vanilla default)" : ""))
-                .withStyle(advance ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY))
+            .append(optionalBoolDisplay(advance, defaultAdvance))
             .append(Component.literal("\n  infiniburn: ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(optionalBoolDisplay(infiniburn, defaultInfiniburn)).withStyle(ChatFormatting.WHITE))
+            .append(optionalBoolDisplay(infiniburn, defaultInfiniburn))
             .append(Component.literal("\n  fast_lava: ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(optionalBoolDisplay(fastLava, defaultFastLava)).withStyle(ChatFormatting.WHITE))
+            .append(optionalBoolDisplay(fastLava, defaultFastLava))
             .append(Component.literal("\n  water_evaporates: ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(optionalBoolDisplay(waterEvaporates, defaultWaterEvaporates)).withStyle(ChatFormatting.WHITE));
+            .append(optionalBoolDisplay(waterEvaporates, defaultWaterEvaporates));
     }
 
     private static int queryAll(CommandSourceStack source) {
+        List<ServerLevel> levels = new ArrayList<>();
+        source.getServer().getAllLevels().forEach(levels::add);
+        levels.sort(Comparator.comparingInt(WeatherCommand::dimOrder));
         MutableComponent output = Component.literal("Dimension weather:\n").withStyle(ChatFormatting.AQUA);
-        for (ServerLevel level : source.getServer().getAllLevels()) {
+        for (ServerLevel level : levels) {
             output = output.append(buildQueryComponent(level)).append(Component.literal("\n"));
         }
         final MutableComponent finalOutput = output;
@@ -220,7 +281,7 @@ public class WeatherCommand {
     private static MutableComponent buildQueryComponent(ServerLevel level) {
         WeatherSavedData data = DimensionLevelWeather.WEATHER.getSavedData();
         WeatherManager.WeatherState state = DimensionLevelWeather.WEATHER.getState(level.dimension());
-        boolean advance = data == null || data.getAdvanceWeather(level.dimension());
+        Optional<Boolean> advance = data == null ? Optional.empty() : data.getAdvanceWeatherOptional(level.dimension());
         Optional<Boolean> infiniburn = data == null ? Optional.empty() : data.getInfiniburn(level.dimension());
         Optional<Boolean> fastLava = data == null ? Optional.empty() : data.getFastLava(level.dimension());
         Optional<Boolean> waterEvaporates = data == null ? Optional.empty() : data.getWaterEvaporates(level.dimension());

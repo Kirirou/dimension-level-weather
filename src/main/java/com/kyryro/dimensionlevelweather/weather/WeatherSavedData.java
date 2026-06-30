@@ -115,6 +115,10 @@ public class WeatherSavedData extends SavedData {
             : dimension == Level.OVERWORLD;
     }
 
+    public Optional<Boolean> getAdvanceWeatherOptional(ResourceKey<Level> dimension) {
+        return Optional.ofNullable(advanceWeather.get(dimension));
+    }
+
     public void setAdvanceWeather(ResourceKey<Level> dimension, boolean value) {
         advanceWeather.put(dimension, value);
         setDirty();
@@ -124,6 +128,10 @@ public class WeatherSavedData extends SavedData {
         return advanceTime.containsKey(dimension)
             ? advanceTime.get(dimension)
             : dimension == Level.OVERWORLD;
+    }
+
+    public Optional<Boolean> getAdvanceTimeOptional(ResourceKey<Level> dimension) {
+        return Optional.ofNullable(advanceTime.get(dimension));
     }
 
     public void setAdvanceTime(ResourceKey<Level> dimension, boolean value) {
