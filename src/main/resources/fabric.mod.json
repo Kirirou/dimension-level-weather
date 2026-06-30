@@ -7,7 +7,10 @@
 	"authors": [
 		"Kirirou Otomichi"
 	],
-	"contact": {},
+	"contact": {
+		"sources": "https://github.com/Kirirou/dimension-level-weather",
+		"email": "souonchouryuu@proton.me"
+	},
 	"license": "CC0-1.0",
 	"icon": "assets/dimension-level-weather/icon.png",
 	"environment": "*",
