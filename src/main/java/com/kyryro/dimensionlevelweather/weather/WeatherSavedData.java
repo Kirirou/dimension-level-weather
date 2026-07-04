@@ -24,6 +24,8 @@ public class WeatherSavedData extends SavedData {
     private final Map<ResourceKey<Level>, Boolean> infiniburn;
     private final Map<ResourceKey<Level>, Boolean> fastLava;
     private final Map<ResourceKey<Level>, Boolean> waterEvaporates;
+    // Software clock for dimensions that have no WorldClock (e.g. vanilla nether)
+    private final Map<ResourceKey<Level>, Long> customTime;
 
     public WeatherSavedData() {
         this.states = new HashMap<>();
@@ -32,6 +34,7 @@ public class WeatherSavedData extends SavedData {
         this.infiniburn = new HashMap<>();
         this.fastLava = new HashMap<>();
         this.waterEvaporates = new HashMap<>();
+        this.customTime = new HashMap<>();
     }
 
     public WeatherSavedData(
@@ -40,13 +43,15 @@ public class WeatherSavedData extends SavedData {
             Map<ResourceKey<Level>, Boolean> advanceTime,
             Map<ResourceKey<Level>, Boolean> infiniburn,
             Map<ResourceKey<Level>, Boolean> fastLava,
-            Map<ResourceKey<Level>, Boolean> waterEvaporates) {
+            Map<ResourceKey<Level>, Boolean> waterEvaporates,
+            Map<ResourceKey<Level>, Long> customTime) {
         this.states = new HashMap<>(states);
         this.advanceWeather = new HashMap<>(advanceWeather);
         this.advanceTime = new HashMap<>(advanceTime);
         this.infiniburn = new HashMap<>(infiniburn);
         this.fastLava = new HashMap<>(fastLava);
         this.waterEvaporates = new HashMap<>(waterEvaporates);
+        this.customTime = new HashMap<>(customTime);
     }
 
     private static final Codec<Map<ResourceKey<Level>, WeatherManager.WeatherState>> STATES_CODEC =
@@ -65,6 +70,13 @@ public class WeatherSavedData extends SavedData {
                 ResourceKey::identifier),
             Codec.BOOL);
 
+    private static final Codec<Map<ResourceKey<Level>, Long>> LONG_MAP_CODEC =
+        Codec.unboundedMap(
+            Identifier.CODEC.xmap(
+                id -> ResourceKey.create(Registries.DIMENSION, id),
+                ResourceKey::identifier),
+            Codec.LONG);
+
     public static final Codec<WeatherSavedData> CODEC = RecordCodecBuilder.create(instance ->
         instance.group(
             STATES_CODEC.optionalFieldOf("states", new HashMap<>()).forGetter(d -> d.states),
@@ -72,7 +84,8 @@ public class WeatherSavedData extends SavedData {
             BOOL_MAP_CODEC.optionalFieldOf("advance_time", new HashMap<>()).forGetter(d -> d.advanceTime),
             BOOL_MAP_CODEC.optionalFieldOf("infiniburn", new HashMap<>()).forGetter(d -> d.infiniburn),
             BOOL_MAP_CODEC.optionalFieldOf("fast_lava", new HashMap<>()).forGetter(d -> d.fastLava),
-            BOOL_MAP_CODEC.optionalFieldOf("water_evaporates", new HashMap<>()).forGetter(d -> d.waterEvaporates)
+            BOOL_MAP_CODEC.optionalFieldOf("water_evaporates", new HashMap<>()).forGetter(d -> d.waterEvaporates),
+            LONG_MAP_CODEC.optionalFieldOf("custom_time", new HashMap<>()).forGetter(d -> d.customTime)
         ).apply(instance, WeatherSavedData::new)
     );
 
@@ -180,6 +193,20 @@ public class WeatherSavedData extends SavedData {
 
     public void removeAdvanceTime(ResourceKey<Level> dimension) {
         advanceTime.remove(dimension);
+        setDirty();
+    }
+
+    public long getCustomTime(ResourceKey<Level> dimension) {
+        return customTime.getOrDefault(dimension, 0L);
+    }
+
+    public void setCustomTime(ResourceKey<Level> dimension, long value) {
+        customTime.put(dimension, value);
+        setDirty();
+    }
+
+    public void addCustomTime(ResourceKey<Level> dimension, long delta) {
+        customTime.merge(dimension, delta, Long::sum);
         setDirty();
     }
 }

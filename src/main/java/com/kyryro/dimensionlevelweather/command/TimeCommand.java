@@ -72,16 +72,39 @@ public class TimeCommand {
     private static long getLevelDayTime(ServerLevel level) {
         return level.dimensionType().defaultClock()
             .map(clock -> level.clockManager().getTotalTicks(clock) % 24000)
-            .orElse(0L);
+            .orElseGet(() -> {
+                // Clockless dimension: use DLW software clock
+                var data = DimensionLevelWeather.WEATHER.getSavedData();
+                return data == null ? 0L : data.getCustomTime(level.dimension()) % 24000;
+            });
+    }
+
+    private static long getLevelTotalTime(ServerLevel level) {
+        return level.dimensionType().defaultClock()
+            .map(clock -> level.clockManager().getTotalTicks(clock))
+            .orElseGet(() -> {
+                var data = DimensionLevelWeather.WEATHER.getSavedData();
+                return data == null ? 0L : data.getCustomTime(level.dimension());
+            });
     }
 
     private static void setLevelDayTime(ServerLevel level, long time) {
-        level.dimensionType().defaultClock().ifPresent(clock -> {
-            ServerClockManager mgr = level.clockManager();
-            long current = mgr.getTotalTicks(clock);
-            long dayStart = current - (current % 24000);
-            mgr.setTotalTicks(clock, dayStart + time);
-        });
+        if (level.dimensionType().defaultClock().isPresent()) {
+            level.dimensionType().defaultClock().ifPresent(clock -> {
+                ServerClockManager mgr = level.clockManager();
+                long current = mgr.getTotalTicks(clock);
+                long dayStart = current - (current % 24000);
+                mgr.setTotalTicks(clock, dayStart + time);
+            });
+        } else {
+            // Clockless dimension: write to DLW software clock
+            var data = DimensionLevelWeather.WEATHER.getSavedData();
+            if (data != null) {
+                long current = data.getCustomTime(level.dimension());
+                long dayStart = current - (current % 24000);
+                data.setCustomTime(level.dimension(), dayStart + time);
+            }
+        }
     }
 
     private static int setTime(CommandSourceStack source, ServerLevel level, long time) {

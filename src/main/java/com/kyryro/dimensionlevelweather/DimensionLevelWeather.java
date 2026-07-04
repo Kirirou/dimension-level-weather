@@ -2,6 +2,7 @@ package com.kyryro.dimensionlevelweather;
 
 import com.kyryro.dimensionlevelweather.command.TimeCommand;
 import com.kyryro.dimensionlevelweather.command.WeatherCommand;
+import com.kyryro.dimensionlevelweather.config.AdvanceTimeManager;
 import com.kyryro.dimensionlevelweather.config.AdvanceWeatherManager;
 import com.kyryro.dimensionlevelweather.config.DimensionConfig;
 import com.kyryro.dimensionlevelweather.network.WaterEvaporatesPayload;
@@ -28,6 +29,7 @@ public class DimensionLevelWeather implements ModInitializer {
     public static final Logger LOGGER = LogManager.getLogger("dimension-level-weather");
     public static final WeatherManager WEATHER = new WeatherManager();
     public static final AdvanceWeatherManager ADVANCE_WEATHER = new AdvanceWeatherManager();
+    public static final AdvanceTimeManager ADVANCE_TIME = new AdvanceTimeManager();
 
     private static DimensionConfig config;
 
@@ -84,19 +86,20 @@ public class DimensionLevelWeather implements ModInitializer {
                     config.getEntry(level.dimension().identifier().toString());
                 ADVANCE_WEATHER.initCycle(level.dimension(), entry);
 
-                // Restore saved advance_time via clock manager
-                if (!savedData.getAdvanceTime(level.dimension())) {
-                    level.dimensionType().defaultClock().ifPresent(clock ->
-                        level.clockManager().setPaused(clock, true));
-                    LOGGER.info("Time advance disabled for {}",
-                        level.dimension().identifier());
-                }
+                // Restore saved advance_time via clock manager — always set both states
+                boolean shouldAdvance = savedData.getAdvanceTime(level.dimension());
+                level.dimensionType().defaultClock().ifPresent(clock ->
+                    level.clockManager().setPaused(clock, !shouldAdvance));
+                LOGGER.info("Time advance {} for {}",
+                    shouldAdvance ? "enabled" : "disabled",
+                    level.dimension().identifier());
             }
         });
 
         ServerTickEvents.END_LEVEL_TICK.register(level -> {
             WEATHER.tick(level);
             ADVANCE_WEATHER.tick(level);
+            ADVANCE_TIME.tick(level);
         });
 
         ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register(
