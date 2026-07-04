@@ -44,6 +44,18 @@ public class TimeCommand {
                         .then(Commands.argument("time", LongArgumentType.longArg(0))
                             .executes(ctx -> setTime(ctx.getSource(),
                                 DimensionArgument.getDimension(ctx, "dimension"),
+                                LongArgumentType.getLong(ctx, "time")))))
+                    .then(Commands.literal("all")
+                        .then(Commands.literal("day")
+                            .executes(ctx -> setAllTime(ctx.getSource(), 1000)))
+                        .then(Commands.literal("noon")
+                            .executes(ctx -> setAllTime(ctx.getSource(), 6000)))
+                        .then(Commands.literal("night")
+                            .executes(ctx -> setAllTime(ctx.getSource(), 13000)))
+                        .then(Commands.literal("midnight")
+                            .executes(ctx -> setAllTime(ctx.getSource(), 18000)))
+                        .then(Commands.argument("time", LongArgumentType.longArg(0))
+                            .executes(ctx -> setAllTime(ctx.getSource(),
                                 LongArgumentType.getLong(ctx, "time"))))))
 
                 .then(Commands.literal("advance")
@@ -53,7 +65,12 @@ public class TimeCommand {
                                 DimensionArgument.getDimension(ctx, "dimension"), true)))
                         .then(Commands.literal("false")
                             .executes(ctx -> setAdvanceTime(ctx.getSource(),
-                                DimensionArgument.getDimension(ctx, "dimension"), false)))))
+                                DimensionArgument.getDimension(ctx, "dimension"), false))))
+                    .then(Commands.literal("all")
+                        .then(Commands.literal("true")
+                            .executes(ctx -> setAllAdvanceTime(ctx.getSource(), true)))
+                        .then(Commands.literal("false")
+                            .executes(ctx -> setAllAdvanceTime(ctx.getSource(), false)))))
 
                 .then(Commands.literal("query")
                     .executes(ctx -> queryAll(ctx.getSource()))
@@ -117,6 +134,18 @@ public class TimeCommand {
         return 1;
     }
 
+    private static int setAllTime(CommandSourceStack source, long time) {
+        List<ServerLevel> levels = new ArrayList<>();
+        source.getServer().getAllLevels().forEach(levels::add);
+        for (ServerLevel level : levels) {
+            setLevelDayTime(level, time);
+        }
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("Set time in all dimensions to ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(String.valueOf(time)).withStyle(ChatFormatting.WHITE)), true);
+        return 1;
+    }
+
     private static int setAdvanceTime(CommandSourceStack source,
                                        ServerLevel level, boolean value) {
         DimensionLevelWeather.WEATHER.getSavedData()
@@ -130,6 +159,25 @@ public class TimeCommand {
             .append(WeatherCommand.dimComponent(level))
             .append(Component.literal(" set to ").withStyle(ChatFormatting.GRAY))
             .append(WeatherCommand.optionalBoolDisplay(Optional.of(value), defaultValue))
+            .append(globalAdvance ? Component.empty()
+                : Component.literal(" (warning: advance_time gamerule is false, this setting will take effect when the gamerule is re-enabled)")
+                    .withStyle(ChatFormatting.YELLOW)), true);
+        return 1;
+    }
+
+    private static int setAllAdvanceTime(CommandSourceStack source, boolean value) {
+        List<ServerLevel> levels = new ArrayList<>();
+        source.getServer().getAllLevels().forEach(levels::add);
+        var data = DimensionLevelWeather.WEATHER.getSavedData();
+        for (ServerLevel level : levels) {
+            data.setAdvanceTime(level.dimension(), value);
+            level.dimensionType().defaultClock().ifPresent(clock ->
+                level.clockManager().setPaused(clock, !value));
+        }
+        boolean globalAdvance = source.getServer().overworld().getGameRules().get(GameRules.ADVANCE_TIME);
+        source.sendSuccess(() -> Component.empty()
+            .append(Component.literal("advance_time for all dimensions set to ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(String.valueOf(value)).withStyle(value ? ChatFormatting.GREEN : ChatFormatting.RED))
             .append(globalAdvance ? Component.empty()
                 : Component.literal(" (warning: advance_time gamerule is false, this setting will take effect when the gamerule is re-enabled)")
                     .withStyle(ChatFormatting.YELLOW)), true);
